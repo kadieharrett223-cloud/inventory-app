@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Forge Ledger Inventory
 
-## Getting Started
+Inventory app shell built with Next.js App Router and Tailwind CSS.
 
-First, run the development server:
+This first version focuses on the app look and navigation structure so backend integrations can be added cleanly.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Tech Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Next.js (App Router, TypeScript)
+- Tailwind CSS
+- Planned integrations: Supabase, QuickBooks Online, GitHub, Vercel
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Run Locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Install dependencies:
 
-## Learn More
+	npm install
 
-To learn more about Next.js, take a look at the following resources:
+2. Create your env file:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+	copy .env.example .env.local
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Start dev server:
 
-## Deploy on Vercel
+	npm run dev
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. Open:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+	http://localhost:3000
+
+## Current App Shell
+
+- Sidebar navigation: Dashboard, Inventory, Suppliers, Orders, Settings
+- Responsive top bar and page container
+- Dashboard cards and stock table placeholders
+- Integration status panel driven by env placeholders
+
+## Environment Variables
+
+Configured in `.env.example`:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `QBO_CLIENT_ID`
+- `QBO_CLIENT_SECRET`
+- `QBO_REDIRECT_URI`
+- `QBO_REALM_ID`
+- `NEXT_PUBLIC_GITHUB_REPO`
+- `NEXT_PUBLIC_VERCEL_PROJECT`
+
+## Deploy to Vercel
+
+1. Push this project to GitHub.
+2. Import the GitHub repository in Vercel.
+3. Add environment variables from `.env.example` in Vercel Project Settings.
+4. Deploy.
+
+## Next Build Steps
+
+1. Add Supabase client and schema for inventory tables.
+2. Build QBO OAuth flow and token storage.
+3. Add API routes for synchronization jobs.
+4. Connect dashboard cards and tables to live Supabase queries.

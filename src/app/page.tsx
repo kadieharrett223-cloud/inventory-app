@@ -1,65 +1,113 @@
-import Image from "next/image";
+import { validateConfig } from "@/lib/config";
+import { getQboConnectionState } from "@/lib/qbo";
+import { getSupabaseConnectionState } from "@/lib/supabase";
 
 export default function Home() {
+  const config = validateConfig();
+  const supabaseState = getSupabaseConnectionState();
+  const qboState = getQboConnectionState();
+
+  const metrics = [
+    { label: "Total SKUs", value: "1,248", delta: "+4.9%" },
+    { label: "Low Stock", value: "37", delta: "-1.2%" },
+    { label: "Open Orders", value: "82", delta: "+8.1%" },
+    { label: "Pending Receipts", value: "14", delta: "+2.4%" },
+  ];
+
+  const tableRows = [
+    { sku: "FG-2101", item: "Aluminum Housing", qty: 148, reorder: 120, status: "Healthy" },
+    { sku: "FG-2004", item: "Bearing Set", qty: 42, reorder: 60, status: "Reorder" },
+    { sku: "FG-1008", item: "Control Board", qty: 16, reorder: 30, status: "Critical" },
+    { sku: "FG-3302", item: "Pressure Valve", qty: 96, reorder: 80, status: "Healthy" },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <section className="mx-auto w-full max-w-6xl animate-[fadeIn_500ms_ease-out] space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5 shadow-[0_24px_60px_-38px_rgba(27,61,94,0.45)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            Operations Snapshot
+          </p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight">Inventory Command Deck</h2>
+          <p className="mt-2 max-w-xl text-sm text-[var(--text-muted)]">
+            Shell UI is ready. Next step is data wiring: Supabase for inventory state,
+            QuickBooks for accounting sync, and GitHub + Vercel for deployment workflow.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="rounded-2xl border border-[var(--line-soft)] bg-[linear-gradient(140deg,rgba(27,61,94,0.96),rgba(20,45,70,0.96))] p-5 text-white shadow-[0_24px_60px_-36px_rgba(27,61,94,0.8)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
+            Integrations Status
+          </p>
+          <ul className="mt-3 space-y-2 text-sm">
+            <li>Supabase: {supabaseState.reason}</li>
+            <li>QBO: {qboState.reason}</li>
+            <li>Config readiness: {config.hasSupabase && config.hasQbo ? "Connected" : "Waiting for env vars"}</li>
+          </ul>
         </div>
-      </main>
-    </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric) => (
+          <article
+            key={metric.label}
+            className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-4"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              {metric.label}
+            </p>
+            <p className="mt-2 text-2xl font-bold">{metric.value}</p>
+            <p className="mt-1 text-xs font-medium text-[var(--brand-secondary)]">{metric.delta} vs 30d</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)]">
+        <div className="flex items-center justify-between border-b border-[var(--line-soft)] px-4 py-3">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Stock Preview
+          </h3>
+          <button className="rounded-lg border border-[var(--line-soft)] px-3 py-1.5 text-xs font-semibold hover:border-[var(--brand-accent)] hover:text-[var(--brand-accent)]">
+            Export CSV
+          </button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-[var(--panel-strong)] text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+              <tr>
+                <th className="px-4 py-3">SKU</th>
+                <th className="px-4 py-3">Item</th>
+                <th className="px-4 py-3">On Hand</th>
+                <th className="px-4 py-3">Reorder Point</th>
+                <th className="px-4 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row) => (
+                <tr key={row.sku} className="border-t border-[var(--line-soft)]">
+                  <td className="px-4 py-3 font-semibold">{row.sku}</td>
+                  <td className="px-4 py-3">{row.item}</td>
+                  <td className="px-4 py-3">{row.qty}</td>
+                  <td className="px-4 py-3">{row.reorder}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        row.status === "Healthy"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : row.status === "Reorder"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-rose-100 text-rose-700"
+                      }`}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   );
 }
