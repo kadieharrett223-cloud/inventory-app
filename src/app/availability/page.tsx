@@ -21,10 +21,12 @@ export default function AvailabilityPage() {
           <thead className="bg-[#2a323c] text-xs uppercase tracking-[0.16em] text-white/85">
             <tr>
               <th className="px-4 py-3">Product</th>
+              <th className="px-4 py-3">Category</th>
+              <th className="px-4 py-3">On Order</th>
               <th className="px-4 py-3">On Floor</th>
               <th className="px-4 py-3">Sold</th>
-              <th className="px-4 py-3">Incoming</th>
-              <th className="px-4 py-3">Available Math</th>
+              <th className="px-4 py-3">For Sale</th>
+              <th className="px-4 py-3">Available Now</th>
               <th className="px-4 py-3">Next Container</th>
               <th className="px-4 py-3">ETA / Port Date</th>
             </tr>
@@ -45,12 +47,18 @@ export default function AvailabilityPage() {
                     <p className="font-semibold">{product.name}</p>
                     <p className="text-xs text-[var(--text-muted)]">{product.sku}</p>
                   </td>
+                  <td className="px-4 py-3">{product.category}</td>
+                  <td className="px-4 py-3">{snapshot.onOrderQty}</td>
                   <td className="px-4 py-3">{snapshot.onFloorQty}</td>
                   <td className="px-4 py-3">{snapshot.soldAssignedQty}</td>
-                  <td className="px-4 py-3">{snapshot.incomingQty}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${netClass}`}>
-                      {snapshot.onFloorQty} - {snapshot.soldAssignedQty} + {snapshot.incomingQty} = {snapshot.realAvailableQty}
+                      {snapshot.forSaleQty}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${netClass}`}>
+                      {snapshot.availableNowQty}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs">

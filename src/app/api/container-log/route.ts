@@ -14,6 +14,7 @@ type ContainerRow = {
   on_ship_date: string | null;
   po_date: string | null;
   port_date: string | null;
+  delivery_date: string | null;
   port_name: string | null;
   payment_status: "Paid" | "Partially Paid" | "Unpaid";
   status:
@@ -61,6 +62,7 @@ function toShipment(
     onShipDate: container.on_ship_date ?? "",
     poDate: container.po_date ?? "",
     portDate: container.port_date ?? "",
+    deliveryDate: container.delivery_date ?? "",
     portName: container.port_name ?? "",
     paymentStatus: container.payment_status,
     status: container.status,

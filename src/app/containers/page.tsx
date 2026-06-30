@@ -60,9 +60,11 @@ export default function ContainersPage() {
               <tr>
                 <th className="px-4 py-3">Container / PO #</th>
                 <th className="px-4 py-3">Supplier</th>
+                <th className="px-4 py-3">Purchase Date</th>
                 <th className="px-4 py-3">Tracking #</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Tracking Status</th>
                 <th className="px-4 py-3">Port / ETA</th>
+                <th className="px-4 py-3">Delivery Date</th>
                 <th className="px-4 py-3">Payment</th>
                 <th className="px-4 py-3">Total Units</th>
                 <th className="px-4 py-3">Products</th>
@@ -78,6 +80,7 @@ export default function ContainersPage() {
                     <p className="text-xs text-[var(--text-muted)]">PO #{container.poNumber}</p>
                   </td>
                   <td className="px-4 py-3">{container.supplier}</td>
+                  <td className="px-4 py-3">{container.poDate}</td>
                   <td className="px-4 py-3">{container.trackingNumber}</td>
                   <td className="px-4 py-3">
                     <p className="font-semibold">{container.status}</p>
@@ -87,6 +90,7 @@ export default function ContainersPage() {
                     <p>{container.portDate}</p>
                     <p className="text-xs text-[var(--text-muted)]">{container.portName}</p>
                   </td>
+                  <td className="px-4 py-3">{container.deliveryDate}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${

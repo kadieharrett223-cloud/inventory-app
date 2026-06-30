@@ -13,6 +13,10 @@ export type ErpProduct = {
   id: string;
   sku: string;
   name: string;
+  category: string;
+  dimensions: string;
+  listPrice: number;
+  salePrice: number;
   onFloorQty: number;
 };
 
@@ -59,6 +63,7 @@ export type ContainerShipment = {
   onShipDate: string;
   poDate: string;
   portDate: string;
+  deliveryDate: string;
   portName: string;
   paymentStatus: InvoicePaymentStatus;
   status: ContainerMilestoneStage;
@@ -81,6 +86,9 @@ export type ProductAvailabilitySnapshot = {
   soldAssignedQty: number;
   incomingQty: number;
   oversoldQty: number;
+  onOrderQty: number;
+  forSaleQty: number;
+  availableNowQty: number;
   realAvailableQty: number;
   nextContainerNo: string | null;
   nextContainerDate: string | null;
@@ -143,7 +151,10 @@ export function computeProductAvailability(
     .sort((a, b) => a.container.portDate.localeCompare(b.container.portDate));
 
   const incomingQty = incomingContainers.reduce((sum, entry) => sum + entry.qty, 0);
+  const onOrderQty = incomingQty;
   const oversoldQty = Math.max(0, soldAssignedQty - onFloorQty);
+  const availableNowQty = onFloorQty - soldAssignedQty;
+  const forSaleQty = availableNowQty + onOrderQty;
   const realAvailableQty = onFloorQty - soldAssignedQty + incomingQty;
 
   const next = incomingContainers[0];
@@ -155,6 +166,9 @@ export function computeProductAvailability(
     soldAssignedQty,
     incomingQty,
     oversoldQty,
+    onOrderQty,
+    forSaleQty,
+    availableNowQty,
     realAvailableQty,
     nextContainerNo: next?.container.containerNo ?? null,
     nextContainerDate: next?.container.portDate ?? null,

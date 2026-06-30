@@ -51,6 +51,7 @@ create table if not exists public.container_shipments (
   on_ship_date date,
   po_date date,
   port_date date,
+  delivery_date date,
   port_name text,
   payment_status text not null check (payment_status in ('Paid', 'Partially Paid', 'Unpaid')),
   status text not null check (

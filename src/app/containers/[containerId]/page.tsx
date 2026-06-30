@@ -35,6 +35,7 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
         <Metric label="Origin port date" value={container.originPortDate} />
         <Metric label="On ship date" value={container.onShipDate} />
         <Metric label="Port / Arrival date" value={`${container.portDate} (${container.portName})`} />
+        <Metric label="Delivery date" value={container.deliveryDate} />
         <Metric label="Lines" value={String(getContainerLineCount(container))} />
         <Metric label="Total units" value={String(getContainerTotalUnits(container))} />
       </div>
