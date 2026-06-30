@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import {
   deriveContainerStatusFromMilestones,
@@ -7,10 +7,10 @@ import {
 } from "@/lib/tracking-provider";
 
 export async function POST(
-  _request: Request,
-  context: { params: { containerId: string } },
+  _request: NextRequest,
+  context: { params: Promise<{ containerId: string }> },
 ) {
-  const { containerId } = context.params;
+  const { containerId } = await context.params;
 
   try {
     const supabase = getSupabaseAdminClient();
