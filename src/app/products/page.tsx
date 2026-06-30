@@ -20,6 +20,7 @@ export default function ProductsPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         {erpProducts.map((product) => {
           const snapshot = computeProductAvailability(product, assignments, containerShipments);
+          const assignedCustomers = assignments.filter((entry) => entry.productId === product.id);
           return (
             <Link
               key={product.id}
@@ -36,6 +37,12 @@ export default function ProductsPage() {
                 <p>Incoming: {snapshot.incomingQty}</p>
                 <p>Real Available: {snapshot.realAvailableQty}</p>
               </div>
+              <p className="mt-3 text-xs text-[var(--text-muted)]">
+                Assigned customers: {assignedCustomers.length ? assignedCustomers.map((entry) => entry.customerName).join(", ") : "None"}
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Next container: {snapshot.nextContainerNo ?? "None"} {snapshot.nextContainerDate ? `(${snapshot.nextContainerDate})` : ""}
+              </p>
             </Link>
           );
         })}

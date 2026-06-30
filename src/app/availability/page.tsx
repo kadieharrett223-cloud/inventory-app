@@ -21,11 +21,12 @@ export default function AvailabilityPage() {
           <thead className="bg-[#2a323c] text-xs uppercase tracking-[0.16em] text-white/85">
             <tr>
               <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Physical</th>
+              <th className="px-4 py-3">On Floor</th>
               <th className="px-4 py-3">Sold</th>
               <th className="px-4 py-3">Incoming</th>
-              <th className="px-4 py-3">Real Available</th>
+              <th className="px-4 py-3">Available Math</th>
               <th className="px-4 py-3">Next Container</th>
+              <th className="px-4 py-3">ETA / Port Date</th>
             </tr>
           </thead>
           <tbody>
@@ -49,7 +50,7 @@ export default function AvailabilityPage() {
                   <td className="px-4 py-3">{snapshot.incomingQty}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${netClass}`}>
-                      {snapshot.realAvailableQty}
+                      {snapshot.onFloorQty} - {snapshot.soldAssignedQty} + {snapshot.incomingQty} = {snapshot.realAvailableQty}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs">
@@ -57,15 +58,15 @@ export default function AvailabilityPage() {
                       <>
                         <p className="font-semibold">{snapshot.nextContainerNo}</p>
                         <p className="text-[var(--text-muted)]">
-                          {snapshot.nextContainerDate} - {snapshot.nextContainerPort}
-                        </p>
-                        <p className="text-[var(--text-muted)]">
                           Available after backlog: {snapshot.availableAfterNextContainer}
                         </p>
                       </>
                     ) : (
                       <span className="text-[var(--text-muted)]">No inbound container</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
+                    {snapshot.nextContainerDate ? `${snapshot.nextContainerDate} - ${snapshot.nextContainerPort}` : "N/A"}
                   </td>
                 </tr>
               );
