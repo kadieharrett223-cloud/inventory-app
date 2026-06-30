@@ -2,6 +2,8 @@ import { validateConfig } from "@/lib/config";
 import { getQboConnectionState } from "@/lib/qbo";
 import { getSupabaseConnectionState } from "@/lib/supabase";
 
+type StockStatus = "Healthy" | "Low Stock" | "Critical" | "In Transit" | "Draft";
+
 export default function Home() {
   const config = validateConfig();
   const supabaseState = getSupabaseConnectionState();
@@ -14,17 +16,26 @@ export default function Home() {
     { label: "Pending Receipts", value: "14", delta: "+2.4%" },
   ];
 
-  const tableRows = [
+  const tableRows: { sku: string; item: string; qty: number; reorder: number; status: StockStatus }[] = [
     { sku: "FG-2101", item: "Aluminum Housing", qty: 148, reorder: 120, status: "Healthy" },
-    { sku: "FG-2004", item: "Bearing Set", qty: 42, reorder: 60, status: "Reorder" },
+    { sku: "FG-2004", item: "Bearing Set", qty: 42, reorder: 60, status: "Low Stock" },
     { sku: "FG-1008", item: "Control Board", qty: 16, reorder: 30, status: "Critical" },
-    { sku: "FG-3302", item: "Pressure Valve", qty: 96, reorder: 80, status: "Healthy" },
+    { sku: "FG-3302", item: "Pressure Valve", qty: 96, reorder: 80, status: "In Transit" },
+    { sku: "FG-1910", item: "Retainer Clip", qty: 0, reorder: 50, status: "Draft" },
   ];
+
+  const statusClassMap: Record<StockStatus, string> = {
+    Healthy: "bg-[var(--status-green-bg)] text-[var(--status-green-text)]",
+    "Low Stock": "bg-[var(--status-yellow-bg)] text-[var(--status-yellow-text)]",
+    Critical: "bg-[var(--status-red-bg)] text-[var(--status-red-text)]",
+    "In Transit": "bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]",
+    Draft: "bg-[var(--status-gray-bg)] text-[var(--status-gray-text)]",
+  };
 
   return (
     <section className="mx-auto w-full max-w-6xl animate-[fadeIn_500ms_ease-out] space-y-6">
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-2xl border border-black/15 bg-[var(--panel)] p-5 shadow-[0_24px_60px_-38px_rgba(0,0,0,0.28)]">
+        <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5 shadow-[0_24px_60px_-40px_rgba(0,0,0,0.22)]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
             Operations Snapshot
           </p>
@@ -34,7 +45,7 @@ export default function Home() {
             QuickBooks for accounting sync, and GitHub + Vercel for deployment workflow.
           </p>
         </div>
-        <div className="rounded-2xl border border-[var(--line-soft)] bg-[linear-gradient(140deg,rgba(107,15,26,0.98),rgba(17,17,17,0.98))] p-5 text-white shadow-[0_24px_60px_-36px_rgba(107,15,26,0.5)]">
+        <div className="rounded-2xl border border-[#2c3440] bg-[#202934] p-5 text-white shadow-[0_24px_60px_-36px_rgba(0,0,0,0.45)]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
             Integrations Status
           </p>
@@ -50,13 +61,13 @@ export default function Home() {
         {metrics.map((metric) => (
           <article
             key={metric.label}
-            className="rounded-2xl border border-black/85 bg-[#141414] p-4 text-white"
+            className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-4"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
               {metric.label}
             </p>
             <p className="mt-2 text-2xl font-bold">{metric.value}</p>
-            <p className="mt-1 text-xs font-medium text-[#c57b86]">{metric.delta} vs 30d</p>
+            <p className="mt-1 text-xs font-medium text-[var(--brand-accent)]">{metric.delta} vs 30d</p>
           </article>
         ))}
       </div>
@@ -73,7 +84,7 @@ export default function Home() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-[#141414] text-xs uppercase tracking-[0.16em] text-white/80">
+            <thead className="bg-[#2a323c] text-xs uppercase tracking-[0.16em] text-white/85">
               <tr>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Item</th>
@@ -92,11 +103,7 @@ export default function Home() {
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        row.status === "Healthy"
-                          ? "bg-black/5 text-black/80"
-                          : row.status === "Reorder"
-                            ? "bg-[#f4e2e5] text-[var(--brand-accent)]"
-                            : "bg-[var(--brand-accent)] text-white"
+                        statusClassMap[row.status]
                       }`}
                     >
                       {row.status}

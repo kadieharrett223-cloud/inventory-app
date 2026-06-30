@@ -33,18 +33,21 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[var(--bg-page)] text-[var(--text-primary)]">
       <div className="pointer-events-none absolute inset-0 z-0 opacity-80">
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-[radial-gradient(circle,_rgba(107,15,26,0.35)_0%,_rgba(107,15,26,0)_70%)]" />
-        <div className="absolute -right-16 top-40 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(0,0,0,0.18)_0%,_rgba(0,0,0,0)_70%)]" />
+        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-[radial-gradient(circle,_rgba(163,32,42,0.24)_0%,_rgba(163,32,42,0)_70%)]" />
+        <div className="absolute -right-16 top-40 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(26,36,48,0.2)_0%,_rgba(26,36,48,0)_70%)]" />
       </div>
 
       <div className="relative z-10 grid min-h-screen grid-cols-1 md:grid-cols-[252px_1fr]">
-        <aside className="border-b border-white/10 bg-[var(--panel-strong)] text-white md:border-b-0 md:border-r">
+        <aside className="border-b border-white/10 bg-[linear-gradient(180deg,var(--panel-strong),var(--panel-strong-alt))] text-white md:border-b-0 md:border-r">
           <div className="flex h-full flex-col p-5">
             <Link href="/" className="mb-8 block">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/65">
                 Forge Ledger
               </p>
-              <h1 className="mt-2 text-xl font-bold tracking-tight">Inventory OS</h1>
+              <h1 className="mt-2 flex items-center gap-2 text-xl font-bold tracking-tight">
+                Inventory OS
+                <span className="inline-block h-2 w-2 rounded-full bg-[var(--brand-gold)]" />
+              </h1>
               <p className="mt-1 text-xs text-white/65">
                 Built for velocity and control
               </p>
@@ -106,7 +109,7 @@ export function AppShell({ children }: AppShellProps) {
                   Ready for Supabase + QBO wiring
                 </p>
               </div>
-              <button className="rounded-lg border border-[var(--line-soft)] bg-[var(--panel)] px-3 py-2 text-xs font-semibold hover:border-[var(--brand-accent)] hover:text-[var(--brand-accent)]">
+              <button className="rounded-lg border border-[var(--brand-secondary)] bg-[var(--brand-accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--brand-secondary)]">
                 New Item
               </button>
             </div>
