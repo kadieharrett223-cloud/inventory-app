@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --bg-page: #ffffff;
-  --panel-strong: #fcfcfc;
+  --bg-page: #f2f2f2;
+  --panel-strong: #111111;
   --panel: #ffffff;
   --text-primary: #131313;
-  --text-muted: #525252;
-  --line-soft: #ececec;
+  --text-muted: #4a4a4a;
+  --line-soft: #dddddd;
   --brand-accent: #6b0f1a;
   --brand-secondary: #3a0a10;
 }

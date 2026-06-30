@@ -24,7 +24,7 @@ export default function Home() {
   return (
     <section className="mx-auto w-full max-w-6xl animate-[fadeIn_500ms_ease-out] space-y-6">
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5 shadow-[0_24px_60px_-38px_rgba(0,0,0,0.2)]">
+        <div className="rounded-2xl border border-black/15 bg-[var(--panel)] p-5 shadow-[0_24px_60px_-38px_rgba(0,0,0,0.28)]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
             Operations Snapshot
           </p>
@@ -50,13 +50,13 @@ export default function Home() {
         {metrics.map((metric) => (
           <article
             key={metric.label}
-            className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-4"
+            className="rounded-2xl border border-black/85 bg-[#141414] p-4 text-white"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
               {metric.label}
             </p>
             <p className="mt-2 text-2xl font-bold">{metric.value}</p>
-            <p className="mt-1 text-xs font-medium text-[var(--brand-secondary)]">{metric.delta} vs 30d</p>
+            <p className="mt-1 text-xs font-medium text-[#c57b86]">{metric.delta} vs 30d</p>
           </article>
         ))}
       </div>
@@ -73,7 +73,7 @@ export default function Home() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-[var(--panel-strong)] text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+            <thead className="bg-[#141414] text-xs uppercase tracking-[0.16em] text-white/80">
               <tr>
                 <th className="px-4 py-3">SKU</th>
                 <th className="px-4 py-3">Item</th>
