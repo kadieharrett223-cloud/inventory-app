@@ -10,6 +10,7 @@ export const erpProducts: ErpProduct[] = [
     listPrice: 1299,
     salePrice: 1149,
     onFloorQty: 5,
+    inStockQty: 2,
   },
   {
     id: "p2",
@@ -20,6 +21,7 @@ export const erpProducts: ErpProduct[] = [
     listPrice: 1999,
     salePrice: 1799,
     onFloorQty: 12,
+    inStockQty: 1,
   },
   {
     id: "p3",
@@ -30,6 +32,7 @@ export const erpProducts: ErpProduct[] = [
     listPrice: 249,
     salePrice: 219,
     onFloorQty: 30,
+    inStockQty: 4,
   },
   {
     id: "p4",
@@ -40,6 +43,7 @@ export const erpProducts: ErpProduct[] = [
     listPrice: 499,
     salePrice: 439,
     onFloorQty: 8,
+    inStockQty: 2,
   },
 ];
 

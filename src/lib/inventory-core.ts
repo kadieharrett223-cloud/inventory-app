@@ -18,6 +18,7 @@ export type ErpProduct = {
   listPrice: number;
   salePrice: number;
   onFloorQty: number;
+  inStockQty?: number;
 };
 
 export type QboProduct = {
@@ -82,6 +83,8 @@ export type ProductAssignment = {
 };
 
 export type ProductAvailabilitySnapshot = {
+  floorQty: number;
+  inStockQty: number;
   onFloorQty: number;
   soldAssignedQty: number;
   incomingQty: number;
@@ -133,7 +136,10 @@ export function computeProductAvailability(
   assignments: ProductAssignment[],
   containers: ContainerShipment[],
 ): ProductAvailabilitySnapshot {
-  const onFloorQty = product.onFloorQty + getReceivedUnitsForProduct(containers, product.id);
+  const floorQty = product.onFloorQty;
+  const inStockQty = product.inStockQty ?? 0;
+  const receivedQty = getReceivedUnitsForProduct(containers, product.id);
+  const onFloorQty = floorQty + inStockQty + receivedQty;
 
   const soldAssignedQty = assignments
     .filter((assignment) => assignment.productId === product.id)
@@ -153,7 +159,7 @@ export function computeProductAvailability(
   const incomingQty = incomingContainers.reduce((sum, entry) => sum + entry.qty, 0);
   const onOrderQty = incomingQty;
   const oversoldQty = Math.max(0, soldAssignedQty - onFloorQty);
-  const availableNowQty = onFloorQty - soldAssignedQty;
+  const availableNowQty = onFloorQty;
   const forSaleQty = availableNowQty + onOrderQty;
   const realAvailableQty = onFloorQty - soldAssignedQty + incomingQty;
 
@@ -162,6 +168,8 @@ export function computeProductAvailability(
   const availableAfterNextContainer = Math.max(0, nextContainerQty - oversoldQty);
 
   return {
+    floorQty,
+    inStockQty,
     onFloorQty,
     soldAssignedQty,
     incomingQty,

@@ -22,11 +22,12 @@ export default function AvailabilityPage() {
             <tr>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">On Order</th>
               <th className="px-4 py-3">On Floor</th>
+              <th className="px-4 py-3">In Stock</th>
               <th className="px-4 py-3">Sold</th>
               <th className="px-4 py-3">For Sale</th>
               <th className="px-4 py-3">Available Now</th>
+              <th className="px-4 py-3">Total On Order</th>
               <th className="px-4 py-3">Next Container</th>
               <th className="px-4 py-3">ETA / Port Date</th>
             </tr>
@@ -48,8 +49,8 @@ export default function AvailabilityPage() {
                     <p className="text-xs text-[var(--text-muted)]">{product.sku}</p>
                   </td>
                   <td className="px-4 py-3">{product.category}</td>
-                  <td className="px-4 py-3">{snapshot.onOrderQty}</td>
-                  <td className="px-4 py-3">{snapshot.onFloorQty}</td>
+                  <td className="px-4 py-3">{snapshot.floorQty}</td>
+                  <td className="px-4 py-3">{snapshot.inStockQty}</td>
                   <td className="px-4 py-3">{snapshot.soldAssignedQty}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${netClass}`}>
@@ -61,6 +62,7 @@ export default function AvailabilityPage() {
                       {snapshot.availableNowQty}
                     </span>
                   </td>
+                  <td className="px-4 py-3">{snapshot.onOrderQty}</td>
                   <td className="px-4 py-3 text-xs">
                     {snapshot.nextContainerNo ? (
                       <>
