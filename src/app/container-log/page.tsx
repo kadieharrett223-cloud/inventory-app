@@ -1,8 +1,46 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { containerShipments, erpProducts } from "@/lib/inventory-data";
 import { getContainerLineCount, getContainerTotalUnits } from "@/lib/inventory-core";
 
 export default function ContainerLogPage() {
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [messageById, setMessageById] = useState<Record<string, string>>({});
+
+  async function refreshTracking(containerId: string) {
+    setRefreshingId(containerId);
+
+    try {
+      const response = await fetch(`/api/container-log/${containerId}/refresh`, {
+        method: "POST",
+      });
+
+      const payload = (await response.json()) as { error?: string; source?: string };
+
+      if (!response.ok) {
+        setMessageById((prev) => ({
+          ...prev,
+          [containerId]: payload.error ?? "Refresh failed",
+        }));
+        return;
+      }
+
+      setMessageById((prev) => ({
+        ...prev,
+        [containerId]: payload.source === "live" ? "Tracking updated from live API" : "Tracking updated from fallback logic",
+      }));
+    } catch {
+      setMessageById((prev) => ({
+        ...prev,
+        [containerId]: "Refresh failed",
+      }));
+    } finally {
+      setRefreshingId(null);
+    }
+  }
+
   return (
     <section className="mx-auto w-full max-w-6xl space-y-5">
       <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-6">
@@ -80,11 +118,15 @@ export default function ContainerLogPage() {
                   </td>
                   <td className="px-4 py-3">
                     <button
+                      onClick={() => refreshTracking(container.id)}
                       className="rounded-md border border-[var(--line-soft)] px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!container.trackingConnected}
+                      disabled={!container.trackingConnected || refreshingId === container.id}
                     >
-                      Refresh
+                      {refreshingId === container.id ? "Refreshing..." : "Refresh"}
                     </button>
+                    {messageById[container.id] ? (
+                      <p className="mt-1 text-[10px] text-[var(--text-muted)]">{messageById[container.id]}</p>
+                    ) : null}
                   </td>
                 </tr>
               ))}
