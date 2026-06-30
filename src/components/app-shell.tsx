@@ -18,6 +18,7 @@ const navItems = [
   { href: "/orders", label: "New Orders", note: "Invoices" },
   { href: "/purchasing", label: "Purchasing", note: "PO" },
   { href: "/containers", label: "Containers", note: "ETA" },
+  { href: "/container-log", label: "Container Log", note: "Track" },
   { href: "/receiving", label: "Receiving", note: "ASN" },
   { href: "/settings", label: "Settings", note: "Config" },
 ];

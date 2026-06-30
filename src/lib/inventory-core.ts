@@ -1,5 +1,13 @@
 export type InvoicePaymentStatus = "Paid" | "Partially Paid" | "Unpaid";
-export type ContainerStatus = "Booked" | "In Transit" | "Arrived";
+export type ContainerMilestoneStage =
+  | "At origin port"
+  | "On the ship"
+  | "At destination port"
+  | "Released from port"
+  | "Arrived at warehouse"
+  | "Received into inventory";
+
+export type ContainerInventoryStatus = "On Order" | "Partially Received" | "Received";
 
 export type ErpProduct = {
   id: string;
@@ -41,10 +49,23 @@ export type ContainerItem = {
 
 export type ContainerShipment = {
   id: string;
+  poNumber: string;
   containerNo: string;
+  supplier: string;
+  trackingNumber: string;
+  trackingSource: string;
+  origin: string;
+  originPortDate: string;
+  onShipDate: string;
+  poDate: string;
   portDate: string;
   portName: string;
-  status: ContainerStatus;
+  paymentStatus: InvoicePaymentStatus;
+  status: ContainerMilestoneStage;
+  inventoryStatus: ContainerInventoryStatus;
+  uploadedAt: string;
+  trackingConnected: boolean;
+  milestones: { stage: ContainerMilestoneStage; date: string }[];
   items: ContainerItem[];
 };
 
@@ -104,12 +125,14 @@ export function computeProductAvailability(
   assignments: ProductAssignment[],
   containers: ContainerShipment[],
 ): ProductAvailabilitySnapshot {
+  const onFloorQty = product.onFloorQty + getReceivedUnitsForProduct(containers, product.id);
+
   const soldAssignedQty = assignments
     .filter((assignment) => assignment.productId === product.id)
     .reduce((sum, assignment) => sum + assignment.qty, 0);
 
   const incomingContainers = containers
-    .filter((container) => container.status !== "Arrived")
+    .filter((container) => !isContainerReceived(container))
     .map((container) => ({
       container,
       qty: container.items
@@ -120,15 +143,15 @@ export function computeProductAvailability(
     .sort((a, b) => a.container.portDate.localeCompare(b.container.portDate));
 
   const incomingQty = incomingContainers.reduce((sum, entry) => sum + entry.qty, 0);
-  const oversoldQty = Math.max(0, soldAssignedQty - product.onFloorQty);
-  const realAvailableQty = product.onFloorQty - soldAssignedQty + incomingQty;
+  const oversoldQty = Math.max(0, soldAssignedQty - onFloorQty);
+  const realAvailableQty = onFloorQty - soldAssignedQty + incomingQty;
 
   const next = incomingContainers[0];
   const nextContainerQty = next?.qty ?? 0;
   const availableAfterNextContainer = Math.max(0, nextContainerQty - oversoldQty);
 
   return {
-    onFloorQty: product.onFloorQty,
+    onFloorQty,
     soldAssignedQty,
     incomingQty,
     oversoldQty,
@@ -139,4 +162,24 @@ export function computeProductAvailability(
     nextContainerQty,
     availableAfterNextContainer,
   };
+}
+
+export function isContainerReceived(container: ContainerShipment) {
+  return container.status === "Received into inventory" || container.inventoryStatus === "Received";
+}
+
+export function getContainerLineCount(container: ContainerShipment) {
+  return container.items.length;
+}
+
+export function getContainerTotalUnits(container: ContainerShipment) {
+  return container.items.reduce((sum, item) => sum + item.qty, 0);
+}
+
+export function getReceivedUnitsForProduct(containers: ContainerShipment[], productId: string) {
+  return containers
+    .filter(isContainerReceived)
+    .flatMap((container) => container.items)
+    .filter((item) => item.erpProductId === productId)
+    .reduce((sum, item) => sum + item.qty, 0);
 }

@@ -17,6 +17,11 @@ const modules = [
     description: "Track inbound containers, ETAs, and product quantities.",
   },
   {
+    href: "/container-log",
+    title: "Container Log",
+    description: "Track every PO/container with milestones, payment, and line-level details.",
+  },
+  {
     href: "/availability",
     title: "Availability",
     description: "See real available inventory and next container coverage.",
