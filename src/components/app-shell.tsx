@@ -13,6 +13,9 @@ const navItems = [
   { href: "/inventory", label: "Inventory", note: "Stock" },
   { href: "/suppliers", label: "Suppliers", note: "Vendors" },
   { href: "/orders", label: "Orders", note: "PO / SO" },
+  { href: "/purchasing", label: "Purchasing", note: "PO" },
+  { href: "/containers", label: "Containers", note: "ETA" },
+  { href: "/receiving", label: "Receiving", note: "ASN" },
   { href: "/settings", label: "Settings", note: "Config" },
 ];
 
@@ -30,8 +33,8 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[var(--bg-page)] text-[var(--text-primary)]">
       <div className="pointer-events-none absolute inset-0 z-0 opacity-70">
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-[radial-gradient(circle,_rgba(228,97,50,0.35)_0%,_rgba(228,97,50,0)_70%)]" />
-        <div className="absolute -right-16 top-40 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(27,61,94,0.25)_0%,_rgba(27,61,94,0)_70%)]" />
+        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-[radial-gradient(circle,_rgba(107,15,26,0.22)_0%,_rgba(107,15,26,0)_70%)]" />
+        <div className="absolute -right-16 top-40 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(0,0,0,0.12)_0%,_rgba(0,0,0,0)_70%)]" />
       </div>
 
       <div className="relative z-10 grid min-h-screen grid-cols-1 md:grid-cols-[252px_1fr]">

@@ -24,7 +24,7 @@ export default function Home() {
   return (
     <section className="mx-auto w-full max-w-6xl animate-[fadeIn_500ms_ease-out] space-y-6">
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5 shadow-[0_24px_60px_-38px_rgba(27,61,94,0.45)]">
+        <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5 shadow-[0_24px_60px_-38px_rgba(0,0,0,0.2)]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
             Operations Snapshot
           </p>
@@ -34,7 +34,7 @@ export default function Home() {
             QuickBooks for accounting sync, and GitHub + Vercel for deployment workflow.
           </p>
         </div>
-        <div className="rounded-2xl border border-[var(--line-soft)] bg-[linear-gradient(140deg,rgba(27,61,94,0.96),rgba(20,45,70,0.96))] p-5 text-white shadow-[0_24px_60px_-36px_rgba(27,61,94,0.8)]">
+        <div className="rounded-2xl border border-[var(--line-soft)] bg-[linear-gradient(140deg,rgba(107,15,26,0.98),rgba(17,17,17,0.98))] p-5 text-white shadow-[0_24px_60px_-36px_rgba(107,15,26,0.5)]">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/75">
             Integrations Status
           </p>
@@ -93,10 +93,10 @@ export default function Home() {
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                         row.status === "Healthy"
-                          ? "bg-emerald-100 text-emerald-700"
+                          ? "bg-black/5 text-black/80"
                           : row.status === "Reorder"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-rose-100 text-rose-700"
+                            ? "bg-[#f4e2e5] text-[var(--brand-accent)]"
+                            : "bg-[var(--brand-accent)] text-white"
                       }`}
                     >
                       {row.status}

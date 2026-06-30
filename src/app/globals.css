@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --bg-page: #f5f4ef;
-  --panel-strong: #fefcf7;
+  --bg-page: #ffffff;
+  --panel-strong: #fcfcfc;
   --panel: #ffffff;
-  --text-primary: #19232f;
-  --text-muted: #5f6976;
-  --line-soft: #d7d8d0;
-  --brand-accent: #e46132;
-  --brand-secondary: #1b3d5e;
+  --text-primary: #131313;
+  --text-muted: #525252;
+  --line-soft: #ececec;
+  --brand-accent: #6b0f1a;
+  --brand-secondary: #3a0a10;
 }
 
 @theme inline {
@@ -34,7 +34,7 @@ h6 {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--brand-accent) 30%, white);
+  background: color-mix(in srgb, var(--brand-accent) 24%, white);
 }
 
 @keyframes fadeIn {
