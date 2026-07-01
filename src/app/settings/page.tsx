@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { erpProducts, productMappings, qboProducts } from "@/lib/inventory-data";
 
@@ -39,6 +40,15 @@ export default function SettingsPage() {
             <dd className="mt-1 break-all font-medium">Configured via server env</dd>
           </div>
         </dl>
+
+        <div className="mt-4">
+          <Link
+            href="/activity"
+            className="inline-flex items-center rounded-full border border-[var(--brand-accent)] px-4 py-2 text-sm font-semibold text-[var(--brand-accent)] hover:bg-[var(--status-red-bg)]"
+          >
+            View All Recent Activity
+          </Link>
+        </div>
       </div>
 
       <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">

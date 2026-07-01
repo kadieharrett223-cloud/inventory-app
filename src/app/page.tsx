@@ -309,7 +309,11 @@ export default function Home() {
               );
             })}
           </div>
-          <div className="border-t border-[#e5eaf1] px-4 py-2 text-center text-[12px] font-medium text-[#475569]">View all activity</div>
+          <div className="border-t border-[#e5eaf1] px-4 py-2">
+            <Link href="/activity" className="flex w-full items-center justify-center text-[12px] font-semibold text-[#b81d24] hover:underline">
+              View all activity
+            </Link>
+          </div>
         </section>
       </div>
 
