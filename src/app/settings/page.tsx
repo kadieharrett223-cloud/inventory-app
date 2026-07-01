@@ -20,7 +20,7 @@ export default function SettingsPage() {
 
   return (
     <section className="mx-auto w-full max-w-6xl space-y-5">
-      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
+      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
           Settings
         </p>
@@ -41,7 +41,7 @@ export default function SettingsPage() {
         </dl>
       </div>
 
-      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
+      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
           Product Mapping
         </p>

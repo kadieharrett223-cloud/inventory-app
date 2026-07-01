@@ -1,27 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --bg-page: #f6f7f9;
+  --bg-page: #f4f5f7;
+  --sidebar-bg: #1f2937;
   --panel-strong: #ffffff;
   --panel-strong-alt: #ffffff;
   --panel: #ffffff;
-  --text-primary: #161a1f;
-  --text-muted: #4f5b67;
-  --line-soft: #e1e5ea;
-  --brand-accent: #a3202a;
-  --brand-secondary: #6f171f;
-  --brand-gold: #b7924b;
+  --text-primary: #1f2937;
+  --text-muted: #5b6573;
+  --line-soft: #d7dce2;
+  --brand-accent: #8b1e24;
+  --brand-secondary: #374151;
+  --brand-gold: #b7791f;
 
-  --status-green-bg: #e7f6ec;
-  --status-green-text: #1e7a3f;
-  --status-yellow-bg: #fff4d6;
-  --status-yellow-text: #9b6a00;
-  --status-red-bg: #fde7ea;
-  --status-red-text: #a3202a;
-  --status-blue-bg: #e6f0fb;
-  --status-blue-text: #1f5f99;
+  --status-green-bg: #e3f3e9;
+  --status-green-text: #2f6b4f;
+  --status-yellow-bg: #fff2d8;
+  --status-yellow-text: #b7791f;
+  --status-red-bg: #fbe6e8;
+  --status-red-text: #8b1e24;
+  --status-blue-bg: #e5edf6;
+  --status-blue-text: #1e3a5f;
   --status-gray-bg: #eceff2;
-  --status-gray-text: #616d79;
+  --status-gray-text: #5b6573;
 }
 
 @theme inline {
