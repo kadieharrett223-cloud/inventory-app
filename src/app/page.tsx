@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentType } from "react";
 import { AlertTriangle, Bell, Boxes, CheckCheck, ClipboardCheck, Container, PackageOpen, Search, ShipWheel, TrendingUp } from "lucide-react";
 import { computeProductAvailability, deriveAssignmentsFromApprovedInvoices, isContainerReceived, isInvoiceEligibleForWarehouse } from "@/lib/inventory-core";
-import { containerShipments, containerUnloadPlans, customerInvoices, erpProducts } from "@/lib/inventory-data";
+import { containerShipments, customerInvoices, erpProducts } from "@/lib/inventory-data";
 
 function shortDate(dateString: string) {
   const date = new Date(dateString);
@@ -15,16 +15,6 @@ function chartPath(index: number) {
   if (index === 1) return "M2 30 C 14 30, 22 23, 33 25 C 43 27, 55 14, 64 17 C 73 20, 84 10, 96 2";
   if (index === 2) return "M2 30 C 14 28, 24 19, 33 22 C 43 26, 54 15, 66 12 C 77 10, 86 13, 96 2";
   return "M2 30 C 16 28, 26 23, 35 18 C 44 12, 54 14, 66 10 C 76 6, 87 9, 96 2";
-}
-
-function daysUntil(dateText: string) {
-  const target = new Date(dateText);
-  if (Number.isNaN(target.getTime())) return Number.POSITIVE_INFINITY;
-
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const to = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
-  return Math.round((to - from) / (1000 * 60 * 60 * 24));
 }
 
 function statusTone(status: string) {
@@ -203,73 +193,6 @@ export default function Home() {
     },
   ];
 
-  const containerAlerts = containerShipments
-    .filter((container) => !isContainerReceived(container))
-    .flatMap((container) => {
-      const plan = containerUnloadPlans.find((entry) => entry.containerId === container.id);
-      const etaDays = daysUntil(container.portDate);
-      const totalUnits = container.items.reduce((sum, item) => sum + item.qty, 0);
-      const alerts: Array<{ id: string; title: string; eta: string; units: number; action: string; href: string }> = [];
-
-      if (etaDays >= 0 && etaDays <= 7) {
-        alerts.push({
-          id: `${container.id}-arriving-week`,
-          title: `Container #${container.poNumber} arriving in next 7 days`,
-          eta: shortDate(container.portDate),
-          units: totalUnits,
-          action: "Review arrival plan",
-          href: `/containers/${container.id}`,
-        });
-      }
-
-      if (!plan?.scheduledUnloadDate) {
-        alerts.push({
-          id: `${container.id}-needs-unload`,
-          title: `Container #${container.poNumber} needs unload scheduling`,
-          eta: shortDate(container.deliveryDate || container.portDate),
-          units: totalUnits,
-          action: "Schedule unload",
-          href: `/containers/${container.id}`,
-        });
-      }
-
-      if (container.status === "Released from port" && !plan?.scheduledUnloadDate) {
-        alerts.push({
-          id: `${container.id}-released-no-delivery`,
-          title: `Container #${container.poNumber} released from port and not scheduled for warehouse delivery`,
-          eta: shortDate(container.portDate),
-          units: totalUnits,
-          action: "Set delivery date",
-          href: `/containers/${container.id}`,
-        });
-      }
-
-      if (etaDays === 0) {
-        alerts.push({
-          id: `${container.id}-arriving-today`,
-          title: `Container #${container.poNumber} arriving today`,
-          eta: "Today",
-          units: totalUnits,
-          action: "Prepare receiving dock",
-          href: `/containers/${container.id}`,
-        });
-      }
-
-      if (plan?.status === "Ready to Unload") {
-        alerts.push({
-          id: `${container.id}-ready-unload`,
-          title: `Container #${container.poNumber} ready to unload`,
-          eta: plan.scheduledUnloadDate ? shortDate(plan.scheduledUnloadDate) : shortDate(container.deliveryDate),
-          units: totalUnits,
-          action: "Start unload",
-          href: `/containers/${container.id}`,
-        });
-      }
-
-      return alerts;
-    })
-    .slice(0, 4);
-
   return (
     <section className="space-y-3">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -296,53 +219,28 @@ export default function Home() {
         {kpiCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <article key={card.title} className="relative min-h-[152px] overflow-hidden rounded-xl border border-[#d8e0eb] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-3.5 py-3 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+            <article key={card.title} className="relative min-h-[126px] overflow-hidden rounded-xl border border-[#dbe2ec] bg-white px-3 py-2.5 shadow-[0_12px_26px_-24px_rgba(15,23,42,0.5)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#5c697b]">{card.title}</p>
-                  <p className="mt-0.5 text-[52px] font-bold leading-none text-[#172436]">{card.value}</p>
-                  <p className="mt-0.5 text-[12px] font-medium text-[#334155]">{card.sub}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.11em] text-[#607186]">{card.title}</p>
+                  <p className="mt-0.5 text-[40px] font-bold leading-none text-[#172436]">{card.value}</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-[#334155]">{card.sub}</p>
                 </div>
-                <div className={`rounded-lg p-2 text-white ${card.iconBg}`}>
-                  <Icon className="h-4 w-4" />
+                <div className={`rounded-lg p-1.5 text-white ${card.iconBg}`}>
+                  <Icon className="h-3.5 w-3.5" />
                 </div>
               </div>
-              <p className={`mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold ${card.tone}`}>
-                <TrendingUp className="h-3 w-3" />
+              <p className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${card.tone}`}>
+                <TrendingUp className="h-2.5 w-2.5" />
                 {card.trend}
               </p>
-              <svg viewBox="0 0 96 32" className="pointer-events-none absolute bottom-1.5 right-1.5 h-8 w-20 opacity-60" fill="none" strokeWidth="1.7">
+              <svg viewBox="0 0 96 32" className="pointer-events-none absolute bottom-1.5 right-1.5 h-7 w-18 opacity-50" fill="none" strokeWidth="1.55">
                 <path d={chartPath(index)} className={card.chartStroke} />
               </svg>
             </article>
           );
         })}
       </div>
-
-      <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-        <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
-          <span>Container Alerts</span>
-          <span className="text-[11px] text-[#ef2d35]">Ops action queue</span>
-        </div>
-        <div className="grid gap-2.5 p-3 md:grid-cols-2 xl:grid-cols-4">
-          {containerAlerts.length > 0 ? (
-            containerAlerts.map((alert) => (
-              <article key={alert.id} className="rounded-xl border border-[#d8e0eb] bg-[#f9fbfe] p-3">
-                <p className="text-[13px] font-semibold text-[#172436]">{alert.title}</p>
-                <p className="mt-1 text-[12px] text-[#5c6878]">ETA: {alert.eta}</p>
-                <p className="mt-0.5 text-[12px] text-[#5c6878]">{alert.units} units</p>
-                <Link href={alert.href} className="mt-2 inline-flex text-[12px] font-semibold text-[#b81d24] hover:underline">
-                  {alert.action}
-                </Link>
-              </article>
-            ))
-          ) : (
-            <p className="col-span-full rounded-xl border border-dashed border-[#d8e0eb] px-3 py-5 text-center text-[13px] text-[#5c6878]">
-              No container action alerts right now.
-            </p>
-          )}
-        </div>
-      </section>
 
       <div className="grid gap-3 xl:grid-cols-[2fr_1.15fr]">
         <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
