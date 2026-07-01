@@ -1,149 +1,93 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
 import { containerShipments, erpProducts } from "@/lib/inventory-data";
 import { getContainerLineCount, getContainerTotalUnits } from "@/lib/inventory-core";
 
 export default function ContainersPage() {
-  const [refreshingId, setRefreshingId] = useState<string | null>(null);
-  const [messageById, setMessageById] = useState<Record<string, string>>({});
-
-  async function refreshTracking(containerId: string) {
-    setRefreshingId(containerId);
-
-    try {
-      const response = await fetch(`/api/container-log/${containerId}/refresh`, {
-        method: "POST",
-      });
-
-      const payload = (await response.json()) as { error?: string; source?: string };
-
-      if (!response.ok) {
-        setMessageById((prev) => ({
-          ...prev,
-          [containerId]: payload.error ?? "Refresh failed",
-        }));
-        return;
-      }
-
-      setMessageById((prev) => ({
-        ...prev,
-        [containerId]: payload.source === "live" ? "Tracking updated from live API" : "Tracking updated from fallback logic",
-      }));
-    } catch {
-      setMessageById((prev) => ({
-        ...prev,
-        [containerId]: "Refresh failed",
-      }));
-    } finally {
-      setRefreshingId(null);
-    }
-  }
-
   return (
-    <section className="mx-auto w-full max-w-6xl space-y-5">
-      <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
-          Containers
-        </p>
-        <h2 className="mt-2 text-2xl font-bold">Container Log and Tracking</h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          One page for container log and tracking: PO number, supplier, tracking, payment, status, ETA/port date, lines, and units.
+    <section className="space-y-5">
+      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
+        <p className="text-sm font-medium text-[var(--text-muted)]">Containers</p>
+        <h2 className="mt-1 text-3xl font-semibold tracking-tight">What is on the water?</h2>
+        <p className="mt-2 max-w-3xl text-sm text-[var(--text-muted)]">
+          Each container should feel like a Trello card: quick to scan, easy to open, and focused on ETA, status, and product count.
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)]">
-        <div className="overflow-x-auto">
-          <table className="min-w-[1200px] text-left text-sm">
-            <thead className="bg-[#2a323c] text-xs uppercase tracking-[0.16em] text-white/85">
-              <tr>
-                <th className="px-4 py-3">Container / PO #</th>
-                <th className="px-4 py-3">Supplier</th>
-                <th className="px-4 py-3">Purchase Date</th>
-                <th className="px-4 py-3">Tracking #</th>
-                <th className="px-4 py-3">Tracking Status</th>
-                <th className="px-4 py-3">Port / ETA</th>
-                <th className="px-4 py-3">Delivery Date</th>
-                <th className="px-4 py-3">Payment</th>
-                <th className="px-4 py-3">Total Units</th>
-                <th className="px-4 py-3">Products</th>
-                <th className="px-4 py-3">Details</th>
-                <th className="px-4 py-3">Refresh</th>
-              </tr>
-            </thead>
-            <tbody>
-              {containerShipments.map((container) => (
-                <tr key={container.id} className="border-t border-[var(--line-soft)]">
-                  <td className="px-4 py-3">
-                    <p className="font-semibold">{container.containerNo}</p>
-                    <p className="text-xs text-[var(--text-muted)]">PO #{container.poNumber}</p>
-                  </td>
-                  <td className="px-4 py-3">{container.supplier}</td>
-                  <td className="px-4 py-3">{container.poDate}</td>
-                  <td className="px-4 py-3">{container.trackingNumber}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-semibold">{container.status}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{container.inventoryStatus}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <p>{container.portDate}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{container.portName}</p>
-                  </td>
-                  <td className="px-4 py-3">{container.deliveryDate}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        container.paymentStatus === "Paid"
-                          ? "bg-[var(--status-green-bg)] text-[var(--status-green-text)]"
-                          : container.paymentStatus === "Partially Paid"
-                            ? "bg-[var(--status-yellow-bg)] text-[var(--status-yellow-text)]"
-                            : "bg-[var(--status-red-bg)] text-[var(--status-red-text)]"
-                      }`}
-                    >
-                      {container.paymentStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">{getContainerTotalUnits(container)}</td>
-                  <td className="px-4 py-3 text-xs text-[var(--text-muted)]">{getContainerLineCount(container)} lines</td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/containers/${container.id}`}
-                      className="rounded-md border border-[var(--line-soft)] px-2.5 py-1.5 text-xs font-semibold hover:border-[var(--brand-accent)]"
-                    >
-                      Details
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => refreshTracking(container.id)}
-                      className="rounded-md border border-[var(--line-soft)] px-2.5 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={!container.trackingConnected || refreshingId === container.id}
-                    >
-                      {refreshingId === container.id ? "Refreshing..." : "Refresh"}
-                    </button>
-                    {messageById[container.id] ? (
-                      <p className="mt-1 text-[10px] text-[var(--text-muted)]">{messageById[container.id]}</p>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {containerShipments.map((container) => (
+          <article key={container.id} className="card-hover rounded-[20px] border border-[var(--line-soft)] bg-white p-5 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-2xl">🚢</p>
+                <h3 className="mt-3 text-lg font-semibold">Container #{container.poNumber}</h3>
+                <p className="text-sm text-[var(--text-muted)]">{container.supplier}</p>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${container.status === "Received into inventory" ? "bg-[var(--status-green-bg)] text-[var(--status-green-text)]" : container.status === "On the ship" ? "bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]" : container.status === "At origin port" ? "bg-[var(--status-yellow-bg)] text-[var(--status-yellow-text)]" : "bg-[var(--status-gray-bg)] text-[var(--status-gray-text)]"}`}>
+                {container.inventoryStatus}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-2 text-sm text-[var(--text-muted)]">
+              <p><span className="font-medium text-[var(--text-primary)]">Status:</span> {container.status}</p>
+              <p><span className="font-medium text-[var(--text-primary)]">ETA:</span> {container.portDate}</p>
+              <p><span className="font-medium text-[var(--text-primary)]">Delivery:</span> {container.deliveryDate}</p>
+              <p><span className="font-medium text-[var(--text-primary)]">Payment:</span> {container.paymentStatus}</p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-3 text-center">
+              <MiniStat label="Products" value={getContainerLineCount(container)} />
+              <MiniStat label="Units" value={getContainerTotalUnits(container)} />
+              <MiniStat label="Tracking" value={container.trackingConnected ? 1 : 0} />
+            </div>
+
+            <div className="mt-5 space-y-2 rounded-2xl bg-[var(--bg-page)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Inside container</p>
+              <div className="space-y-2 text-sm text-[var(--text-muted)]">
+                {container.items.map((item) => {
+                  const product = erpProducts.find((entry) => entry.id === item.erpProductId);
+                  return (
+                    <div key={item.erpProductId} className="flex items-center justify-between rounded-xl bg-white px-3 py-2 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
+                      <span className="font-medium text-[var(--text-primary)]">{product?.name ?? item.erpProductId}</span>
+                      <span>{item.qty}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between">
+              <Link href={`/containers/${container.id}`} className="font-medium text-[var(--status-blue-text)]">View →</Link>
+              <span className="text-xs text-[var(--text-muted)]">{container.trackingSource}</span>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Products on incoming containers</h3>
+            <p className="text-sm text-[var(--text-muted)]">Quick visibility for what&apos;s coming next.</p>
+          </div>
         </div>
-      </div>
-
-      <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5">
-        <h3 className="text-lg font-bold">Products on incoming containers</h3>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 text-sm">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {erpProducts.map((product) => (
-            <div key={product.id} className="rounded-lg border border-[var(--line-soft)] px-3 py-2">
-              <p className="font-semibold">{product.name}</p>
-              <p className="text-xs text-[var(--text-muted)]">{product.sku}</p>
+            <div key={product.id} className="rounded-[18px] border border-[var(--line-soft)] bg-[var(--bg-page)] p-4">
+              <p className="text-sm font-medium">{product.name}</p>
+              <p className="text-xs text-[var(--text-muted)]">{product.category}</p>
             </div>
           ))}
         </div>
       </div>
     </section>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-[var(--bg-page)] px-3 py-3">
+      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p>
+    </div>
   );
 }

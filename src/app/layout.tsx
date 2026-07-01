@@ -14,8 +14,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Forge Ledger Inventory",
-  description: "Inventory shell ready for Supabase, QBO, GitHub, and Vercel",
+  title: "Forge Ledger Operations",
+  description: "A simple operations dashboard for inventory, containers, orders, and product availability",
 };
 
 export default function RootLayout({

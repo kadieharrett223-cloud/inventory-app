@@ -9,12 +9,12 @@ type AppShellProps = {
 };
 
 const navItems = [
-  { href: "/", label: "Dashboard", note: "KPIs" },
-  { href: "/availability", label: "Availability", note: "ATP" },
-  { href: "/orders", label: "Orders", note: "Approve" },
-  { href: "/products", label: "Products", note: "SKU" },
-  { href: "/containers", label: "Containers", note: "Track" },
-  { href: "/settings", label: "Settings", note: "Config" },
+  { href: "/", label: "🏠 Dashboard" },
+  { href: "/availability", label: "📦 Availability" },
+  { href: "/orders", label: "🛒 Orders" },
+  { href: "/products", label: "📋 Products" },
+  { href: "/containers", label: "🚢 Containers" },
+  { href: "/settings", label: "⚙ Settings" },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -30,28 +30,25 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[var(--bg-page)] text-[var(--text-primary)]">
-      <div className="pointer-events-none absolute inset-0 z-0 opacity-80">
-        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-[radial-gradient(circle,_rgba(163,32,42,0.24)_0%,_rgba(163,32,42,0)_70%)]" />
-        <div className="absolute -right-16 top-40 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(26,36,48,0.2)_0%,_rgba(26,36,48,0)_70%)]" />
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-60">
+        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-[radial-gradient(circle,_rgba(163,32,42,0.12)_0%,_rgba(163,32,42,0)_70%)]" />
+        <div className="absolute -right-16 top-40 h-80 w-80 rounded-full bg-[radial-gradient(circle,_rgba(31,95,153,0.08)_0%,_rgba(31,95,153,0)_70%)]" />
       </div>
 
-      <div className="relative z-10 grid min-h-screen grid-cols-1 md:grid-cols-[252px_1fr]">
-        <aside className="border-b border-white/10 bg-[linear-gradient(180deg,var(--panel-strong),var(--panel-strong-alt))] text-white md:border-b-0 md:border-r">
-          <div className="flex h-full flex-col p-5">
+      <div className="relative z-10 grid min-h-screen grid-cols-1 lg:grid-cols-[240px_1fr]">
+        <aside className="border-b border-[var(--line-soft)] bg-white/95 backdrop-blur lg:border-b-0 lg:border-r">
+          <div className="flex h-full flex-col px-5 py-6">
             <Link href="/" className="mb-8 block">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/65">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                 Forge Ledger
               </p>
-              <h1 className="mt-2 flex items-center gap-2 text-xl font-bold tracking-tight">
-                Inventory OS
-                <span className="inline-block h-2 w-2 rounded-full bg-[var(--brand-gold)]" />
-              </h1>
-              <p className="mt-1 text-xs text-white/65">
-                Built for velocity and control
+              <h1 className="mt-2 text-lg font-semibold tracking-tight">Operations Dashboard</h1>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Fast inventory, orders, and containers.
               </p>
             </Link>
 
-            <nav className="space-y-2">
+            <nav className="space-y-1.5">
               {navItems.map((item) => {
                 const active = isActive(pathname, item.href);
 
@@ -59,61 +56,49 @@ export function AppShell({ children }: AppShellProps) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`group flex items-center justify-between rounded-xl border px-3 py-2.5 transition ${
+                    className={`group flex items-center rounded-2xl px-3 py-3 text-sm font-medium ${
                       active
-                        ? "border-[var(--brand-accent)] bg-[var(--brand-accent)]/12"
-                        : "border-transparent hover:border-white/20 hover:bg-white/8"
+                        ? "bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]"
+                        : "text-[var(--text-primary)] hover:bg-[var(--bg-page)]"
                     }`}
                   >
-                    <span className="text-sm font-medium">{item.label}</span>
-                    <span className="rounded-md border border-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70 group-hover:text-white">
-                      {item.note}
-                    </span>
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="mt-auto rounded-xl border border-white/20 bg-black/35 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+            <div className="mt-auto rounded-2xl border border-[var(--line-soft)] bg-[var(--bg-page)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
                 Connections
               </p>
-              <ul className="mt-2 space-y-2 text-xs text-white/75">
-                <li className="flex items-center justify-between">
-                  <span>Supabase</span>
-                  <span className="rounded border border-white/25 px-1.5 py-0.5">DB</span>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span>QuickBooks Online</span>
-                  <span className="rounded border border-white/25 px-1.5 py-0.5">QBO</span>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span>GitHub + Vercel</span>
-                  <span className="rounded border border-white/25 px-1.5 py-0.5">CI</span>
-                </li>
+              <ul className="mt-3 space-y-2 text-sm text-[var(--text-muted)]">
+                <li>Supabase</li>
+                <li>QuickBooks Online</li>
+                <li>GitHub + Vercel</li>
               </ul>
             </div>
           </div>
         </aside>
 
         <div className="flex min-h-screen flex-col">
-          <header className="sticky top-0 z-20 border-b border-[var(--line-soft)] bg-[var(--bg-page)]/85 backdrop-blur">
-            <div className="flex items-center justify-between px-4 py-3 sm:px-6">
+          <header className="sticky top-0 z-20 border-b border-[var(--line-soft)] bg-[var(--bg-page)]/92 backdrop-blur">
+            <div className="flex items-center justify-between px-5 py-4 sm:px-8">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
                   Inventory App Shell
                 </p>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
-                  Ready for Supabase + QBO wiring
+                <p className="text-base font-semibold text-[var(--text-primary)]">
+                  Operations dashboard for sales, warehouse, and management
                 </p>
               </div>
-              <button className="rounded-lg border border-[var(--brand-secondary)] bg-[var(--brand-accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--brand-secondary)]">
+              <button className="rounded-full border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
                 New Item
               </button>
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
+          <main className="flex-1 px-5 py-6 sm:px-8">{children}</main>
         </div>
       </div>
     </div>

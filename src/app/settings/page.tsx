@@ -20,42 +20,42 @@ export default function SettingsPage() {
 
   return (
     <section className="mx-auto w-full max-w-6xl space-y-5">
-      <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-6">
+      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
           Settings
         </p>
-        <h2 className="mt-2 text-2xl font-bold">Integration Config</h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          This page is wired to configuration placeholders. Add your env vars next.
+        <h2 className="mt-2 text-3xl font-semibold tracking-tight">Settings & Mapping</h2>
+        <p className="mt-2 max-w-3xl text-sm text-[var(--text-muted)]">
+          Keep the app simple. Use this page for product mapping and integration settings.
         </p>
 
         <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
-          <div className="rounded-xl border border-[var(--line-soft)] bg-[var(--panel-strong)] p-3">
+          <div className="rounded-[18px] border border-[var(--line-soft)] bg-[var(--bg-page)] p-4">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Supabase URL</dt>
             <dd className="mt-1 break-all font-medium">{process.env.NEXT_PUBLIC_SUPABASE_URL ?? "Not set"}</dd>
           </div>
-          <div className="rounded-xl border border-[var(--line-soft)] bg-[var(--panel-strong)] p-3">
+          <div className="rounded-[18px] border border-[var(--line-soft)] bg-[var(--bg-page)] p-4">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">QBO Client</dt>
             <dd className="mt-1 break-all font-medium">Configured via server env</dd>
           </div>
         </dl>
       </div>
 
-      <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-6">
+      <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.28)]">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
           Product Mapping
         </p>
-        <h3 className="mt-2 text-xl font-bold">QuickBooks to ERP Product Mapping</h3>
+        <h3 className="mt-2 text-2xl font-semibold tracking-tight">QuickBooks to ERP Product Mapping</h3>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
           Map QBO products to ERP products here. This is kept under Settings to keep the app simple.
         </p>
-        <p className="mt-3 text-sm font-semibold text-[var(--brand-secondary)]">
+        <p className="mt-3 text-sm font-semibold text-[var(--status-blue-text)]">
           {mappedCount} of {qboProducts.length} mapped
         </p>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-[var(--line-soft)]">
+        <div className="mt-4 overflow-hidden rounded-[18px] border border-[var(--line-soft)]">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-[#2a323c] text-xs uppercase tracking-[0.16em] text-white/85">
+            <thead className="bg-[var(--bg-page)] text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
               <tr>
                 <th className="px-4 py-3">QBO Product</th>
                 <th className="px-4 py-3">ERP Product</th>

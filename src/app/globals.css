@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --bg-page: #eceff2;
-  --panel-strong: #12161b;
-  --panel-strong-alt: #1a2430;
+  --bg-page: #f6f7f9;
+  --panel-strong: #ffffff;
+  --panel-strong-alt: #ffffff;
   --panel: #ffffff;
   --text-primary: #161a1f;
   --text-muted: #4f5b67;
-  --line-soft: #c4cdd5;
+  --line-soft: #e1e5ea;
   --brand-accent: #a3202a;
   --brand-secondary: #6f171f;
   --brand-gold: #b7924b;
@@ -48,6 +48,27 @@ h6 {
 
 ::selection {
   background: color-mix(in srgb, var(--brand-accent) 24%, white);
+}
+
+button,
+a,
+details,
+[role="button"] {
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease,
+    border-color 160ms ease, opacity 160ms ease;
+}
+
+.card-hover {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px -30px rgba(17, 24, 39, 0.45);
+}
+
+details[open] summary ~ * {
+  animation: fadeIn 220ms ease-out;
 }
 
 @keyframes fadeIn {
