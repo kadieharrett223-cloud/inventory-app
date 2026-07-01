@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { AlertTriangle, Bell, Boxes, CheckCheck, ClipboardCheck, Container, PackageOpen, Search, ShipWheel, TrendingUp } from "lucide-react";
+import { AlertTriangle, Bell, CheckCheck, ClipboardCheck, PackageOpen, Search, ShipWheel, TrendingUp } from "lucide-react";
 import { computeProductAvailability, deriveAssignmentsFromApprovedInvoices, isContainerReceived, isInvoiceEligibleForWarehouse } from "@/lib/inventory-core";
 import { containerShipments, customerInvoices, erpProducts } from "@/lib/inventory-data";
 
@@ -155,44 +155,6 @@ export default function Home() {
     },
   ] as const;
 
-  const activity = [
-    {
-      icon: Container,
-      color: "bg-[#1e3a5f]",
-      title: `Container PO #${inbound[0]?.poNumber ?? "241"} status updated`,
-      sub: inbound[0]?.status ?? "On Ship",
-      ago: "1h ago",
-    },
-    {
-      icon: CheckCheck,
-      color: "bg-[#2f6b4f]",
-      title: `Order #${ordersReady[0]?.invoiceNo ?? "126088"} approved for shipping`,
-      sub: `${ordersReady[0]?.customerName ?? "4PHR-9X"} (${ordersReady[0]?.lines.reduce((s, l) => s + l.qty, 0) ?? 2} units)`,
-      ago: "2h ago",
-    },
-    {
-      icon: Boxes,
-      color: "bg-[#374151]",
-      title: "Inventory received into warehouse",
-      sub: `PO #${containerShipments[2]?.poNumber ?? "238"} - ${containerShipments[2]?.items.reduce((s, i) => s + i.qty, 0) ?? 28} units`,
-      ago: "4h ago",
-    },
-    {
-      icon: AlertTriangle,
-      color: "bg-[#b7791f]",
-      title: `Product ${erpProducts[0]?.sku ?? "4PHR-9X"} is oversold by ${Math.max(0, oversoldUnits)} units`,
-      sub: "View backorder report",
-      ago: "6h ago",
-    },
-    {
-      icon: Container,
-      color: "bg-[#1e3a5f]",
-      title: `Container PO #${inbound[1]?.poNumber ?? "240"} arrived at origin port`,
-      sub: inbound[1]?.origin.split(",").slice(0, 2).join(", ") ?? "Ningbo, China",
-      ago: "8h ago",
-    },
-  ];
-
   return (
     <section className="space-y-3">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -291,27 +253,33 @@ export default function Home() {
         </section>
 
         <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Recent Activity</div>
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">New Orders</div>
           <div className="divide-y divide-[#e5eaf1] px-1">
-            {activity.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={`${item.title}-${item.ago}`} className="flex items-start gap-2.5 px-3.5 py-3">
-                  <div className={`rounded-full p-1.5 text-white ${item.color}`}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-[#172436]">{item.title}</p>
-                    <p className={`text-[12px] ${item.sub === "View backorder report" ? "font-semibold text-[#b91c1c]" : "text-[#475569]"}`}>{item.sub}</p>
-                  </div>
-                  <span className="pt-0.5 text-[11px] text-[#65758a]">{item.ago}</span>
-                </article>
-              );
-            })}
+            {ordersWaiting.length > 0 ? (
+              ordersWaiting.slice(0, 5).map((invoice) => {
+                const units = invoice.lines.reduce((sum, line) => sum + line.qty, 0);
+                return (
+                  <article key={invoice.id} className="flex items-start gap-2.5 px-3.5 py-3">
+                    <div className="rounded-full bg-[#8b1e24] p-1.5 text-white">
+                      <ClipboardCheck className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-[#172436]">{invoice.invoiceNo} - {invoice.customerName}</p>
+                      <p className="text-[12px] text-[#475569]">{units} units pending warehouse approval</p>
+                    </div>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${invoice.paymentStatus === "Paid" ? "bg-[#e7f6ed] text-[#2f6b4f]" : "bg-[#fff2d8] text-[#b7791f]"}`}>
+                      {invoice.paymentStatus}
+                    </span>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="px-3.5 py-5 text-center text-[12px] text-[#65758a]">No unapproved paid orders right now.</div>
+            )}
           </div>
           <div className="border-t border-[#e5eaf1] px-4 py-2">
-            <Link href="/activity" className="flex w-full items-center justify-center text-[12px] font-semibold text-[#b81d24] hover:underline">
-              View all activity
+            <Link href="/new-orders" className="flex w-full items-center justify-center text-[12px] font-semibold text-[#b81d24] hover:underline">
+              View all new orders
             </Link>
           </div>
         </section>
