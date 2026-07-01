@@ -11,6 +11,7 @@ import {
   isContainerReceived,
 } from "@/lib/inventory-core";
 import { containerDocumentsById, containerShipments, containerUnloadPlans, customerInvoices, erpProducts } from "@/lib/inventory-data";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 type ContainerDetailPageProps = {
   params: Promise<{ containerId: string }>;
@@ -33,6 +34,112 @@ const timelineSteps: TimelineStep[] = [
 
 const unloadStatuses: ContainerUnloadPlanStatus[] = ["Not Scheduled", "Scheduled", "Ready to Unload", "Unloaded"];
 
+type AppContainer = (typeof containerShipments)[number];
+
+function getSupabaseOrNull() {
+  try {
+    return getSupabaseAdminClient();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchContainerFromSupabase(containerId: string): Promise<AppContainer | null> {
+  const supabase = getSupabaseOrNull();
+  if (!supabase) return null;
+
+  const { data: containerRow, error: containerError } = await supabase
+    .from("container_shipments")
+    .select("*")
+    .eq("id", containerId)
+    .maybeSingle();
+
+  if (containerError || !containerRow) return null;
+
+  const [{ data: itemRows, error: itemsError }, { data: milestoneRows, error: milestonesError }] = await Promise.all([
+    supabase.from("container_items").select("erp_product_id, qty").eq("container_id", containerId),
+    supabase.from("container_milestones").select("stage, milestone_date").eq("container_id", containerId).order("milestone_date", { ascending: true }),
+  ]);
+
+  if (itemsError || milestonesError) return null;
+
+  return {
+    id: containerRow.id,
+    poNumber: containerRow.po_number,
+    containerNo: containerRow.container_no,
+    supplier: containerRow.supplier,
+    trackingNumber: containerRow.tracking_number ?? "",
+    trackingSource: containerRow.tracking_source ?? "",
+    origin: containerRow.origin ?? "",
+    originPortDate: containerRow.origin_port_date ?? "",
+    onShipDate: containerRow.on_ship_date ?? "",
+    poDate: containerRow.po_date ?? "",
+    portDate: containerRow.port_date ?? "",
+    deliveryDate: containerRow.delivery_date ?? "",
+    portName: containerRow.port_name ?? "",
+    paymentStatus: containerRow.payment_status,
+    status: containerRow.status,
+    inventoryStatus: containerRow.inventory_status,
+    uploadedAt: containerRow.uploaded_at ?? "",
+    trackingConnected: Boolean(containerRow.tracking_connected),
+    milestones: (milestoneRows ?? []).map((row) => ({ stage: row.stage, date: row.milestone_date })),
+    items: (itemRows ?? []).map((row) => ({ erpProductId: row.erp_product_id, qty: row.qty })),
+  };
+}
+
+async function fetchContainerSupportData(containerId: string) {
+  const fallbackPlan = containerUnloadPlans.find((entry) => entry.containerId === containerId) ?? null;
+  const fallbackDocs =
+    containerDocumentsById[containerId] ??
+    [
+      { label: "Supplier invoice", uploadedAt: null, status: "Missing" as const },
+      { label: "Packing list", uploadedAt: null, status: "Missing" as const },
+      { label: "Bill of lading", uploadedAt: null, status: "Missing" as const },
+      { label: "Delivery appointment", uploadedAt: null, status: "Missing" as const },
+    ];
+
+  const supabase = getSupabaseOrNull();
+  if (!supabase) {
+    return { unloadPlan: fallbackPlan, documents: fallbackDocs };
+  }
+
+  const [planRes, docsRes, notesRes] = await Promise.all([
+    supabase
+      .from("container_unload_plans")
+      .select("scheduled_unload_date, scheduled_unload_time, warehouse_bay, forklift_needed, staff_assigned, estimated_pallets, estimated_units, notes, status")
+      .eq("container_id", containerId)
+      .maybeSingle(),
+    supabase.from("container_documents").select("doc_label, uploaded_at, status").eq("container_id", containerId),
+    supabase.from("container_internal_notes").select("notes").eq("container_id", containerId).maybeSingle(),
+  ]);
+
+  const unloadPlan = planRes.data
+    ? {
+        containerId,
+        scheduledUnloadDate: planRes.data.scheduled_unload_date,
+        scheduledUnloadTime: planRes.data.scheduled_unload_time,
+        warehouseBay: planRes.data.warehouse_bay,
+        forkliftNeeded: Boolean(planRes.data.forklift_needed),
+        staffAssigned: planRes.data.staff_assigned ?? [],
+        estimatedPallets: planRes.data.estimated_pallets ?? 0,
+        estimatedUnits: planRes.data.estimated_units ?? 0,
+        notes: notesRes.data?.notes ?? planRes.data.notes ?? "",
+        status: planRes.data.status,
+      }
+    : fallbackPlan;
+
+  const documents =
+    docsRes.data && docsRes.data.length > 0
+      ? docsRes.data.map((doc) => ({
+          label: doc.doc_label,
+          uploadedAt: doc.uploaded_at,
+          status: doc.status,
+        }))
+      : fallbackDocs;
+
+  return { unloadPlan, documents };
+}
+
 function revalidateContainerSurfaces(containerId: string) {
   revalidatePath("/");
   revalidatePath("/availability");
@@ -44,11 +151,46 @@ async function receiveIntoInventory(containerId: string) {
   "use server";
 
   const container = containerShipments.find((entry) => entry.id === containerId);
-  if (!container || isContainerReceived(container)) {
+  if (!container) {
+    return;
+  }
+
+  if (isContainerReceived(container)) {
     return;
   }
 
   const today = new Date().toISOString().slice(0, 10);
+
+  const supabase = getSupabaseOrNull();
+  if (supabase) {
+    await supabase
+      .from("container_shipments")
+      .update({
+        status: "Received into inventory",
+        inventory_status: "Received",
+      })
+      .eq("id", containerId);
+
+    await supabase.from("container_milestones").upsert(
+      [
+        { container_id: containerId, stage: "Arrived at warehouse", milestone_date: today },
+        { container_id: containerId, stage: "Received into inventory", milestone_date: today },
+      ],
+      { onConflict: "container_id,stage" },
+    );
+
+    await supabase
+      .from("container_unload_plans")
+      .upsert(
+        {
+          container_id: containerId,
+          status: "Unloaded",
+          scheduled_unload_date: today,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "container_id" },
+      );
+  }
 
   container.status = "Received into inventory";
   container.inventoryStatus = "Received";
@@ -119,6 +261,28 @@ async function saveUnloadPlan(containerId: string, formData: FormData) {
     containerUnloadPlans.push(plan);
   }
 
+  const supabase = getSupabaseOrNull();
+  if (supabase) {
+    await supabase
+      .from("container_unload_plans")
+      .upsert(
+        {
+          container_id: containerId,
+          scheduled_unload_date: plan.scheduledUnloadDate,
+          scheduled_unload_time: plan.scheduledUnloadTime,
+          warehouse_bay: plan.warehouseBay,
+          forklift_needed: plan.forkliftNeeded,
+          staff_assigned: plan.staffAssigned,
+          estimated_pallets: plan.estimatedPallets,
+          estimated_units: plan.estimatedUnits,
+          notes: plan.notes,
+          status: plan.status,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "container_id" },
+      );
+  }
+
   revalidateContainerSurfaces(containerId);
 }
 
@@ -143,6 +307,21 @@ async function saveDocuments(containerId: string, formData: FormData) {
   });
 
   containerDocumentsById[containerId] = updated;
+
+  const supabase = getSupabaseOrNull();
+  if (supabase) {
+    await supabase.from("container_documents").upsert(
+      updated.map((doc) => ({
+        container_id: containerId,
+        doc_label: doc.label,
+        status: doc.status,
+        uploaded_at: doc.uploadedAt,
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: "container_id,doc_label" },
+    );
+  }
+
   revalidateContainerSurfaces(containerId);
 }
 
@@ -172,19 +351,37 @@ async function saveInternalNotes(containerId: string, formData: FormData) {
     }
   }
 
+  const supabase = getSupabaseOrNull();
+  if (supabase) {
+    await supabase
+      .from("container_internal_notes")
+      .upsert(
+        {
+          container_id: containerId,
+          notes,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "container_id" },
+      );
+  }
+
   revalidateContainerSurfaces(containerId);
 }
 
 export default async function ContainerDetailPage({ params }: ContainerDetailPageProps) {
   const { containerId } = await params;
 
-  const container = containerShipments.find((entry) => entry.id === containerId);
+  const fallbackContainer = containerShipments.find((entry) => entry.id === containerId);
+  const dbContainer = await fetchContainerFromSupabase(containerId);
+  const container = dbContainer ?? fallbackContainer;
   if (!container) {
     notFound();
   }
 
+  const supportData = await fetchContainerSupportData(container.id);
+
   const unloadPlan =
-    containerUnloadPlans.find((entry) => entry.containerId === container.id) ?? {
+    supportData.unloadPlan ?? {
       containerId: container.id,
       scheduledUnloadDate: null,
       scheduledUnloadTime: null,
@@ -202,14 +399,7 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
   const daysUntilPortArrival = dateDiffInDays(container.portDate);
   const daysUntilWarehouse = dateDiffInDays(container.deliveryDate);
   const locationLabel = deriveLocationLabel(container.status, container.origin, container.portName);
-  const documents =
-    containerDocumentsById[container.id] ??
-    [
-      { label: "Supplier invoice", uploadedAt: null, status: "Missing" as const },
-      { label: "Packing list", uploadedAt: null, status: "Missing" as const },
-      { label: "Bill of lading", uploadedAt: null, status: "Missing" as const },
-      { label: "Delivery appointment", uploadedAt: null, status: "Missing" as const },
-    ];
+  const documents = supportData.documents;
 
   return (
     <section className="mx-auto w-full max-w-6xl space-y-4">
