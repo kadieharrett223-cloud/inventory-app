@@ -1,4 +1,4 @@
-import type { ContainerShipment, ContainerUnloadPlan, CustomerInvoice, ErpProduct, ProductMapping, QboProduct } from "@/lib/inventory-core";
+import type { ContainerDocument, ContainerShipment, ContainerUnloadPlan, CustomerInvoice, ErpProduct, ProductMapping, QboProduct } from "@/lib/inventory-core";
 
 export const erpProducts: ErpProduct[] = [
   {
@@ -231,7 +231,7 @@ export const containerUnloadPlans: ContainerUnloadPlan[] = [
   },
 ];
 
-export const containerDocumentsById: Record<string, Array<{ label: string; uploadedAt: string | null; status: "Uploaded" | "Missing" }>> = {
+export const containerDocumentsById: Record<string, ContainerDocument[]> = {
   c226: [
     { label: "Supplier invoice", uploadedAt: "2026-03-11", status: "Uploaded" },
     { label: "Packing list", uploadedAt: "2026-03-12", status: "Uploaded" },

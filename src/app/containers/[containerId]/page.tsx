@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import {
+  type ContainerDocument,
+  type ContainerUnloadPlanStatus,
   deriveAssignmentsFromApprovedInvoices,
   getContainerTotalUnits,
   getReceivedUnitsForProduct,
@@ -27,6 +30,15 @@ const timelineSteps: TimelineStep[] = [
   { key: "arrived", label: "Arrived at warehouse" },
   { key: "received", label: "Unloaded / received into inventory" },
 ];
+
+const unloadStatuses: ContainerUnloadPlanStatus[] = ["Not Scheduled", "Scheduled", "Ready to Unload", "Unloaded"];
+
+function revalidateContainerSurfaces(containerId: string) {
+  revalidatePath("/");
+  revalidatePath("/availability");
+  revalidatePath("/containers");
+  revalidatePath(`/containers/${containerId}`);
+}
 
 async function receiveIntoInventory(containerId: string) {
   "use server";
@@ -59,10 +71,108 @@ async function receiveIntoInventory(containerId: string) {
     }
   }
 
-  revalidatePath("/");
-  revalidatePath("/availability");
-  revalidatePath("/containers");
-  revalidatePath(`/containers/${containerId}`);
+  revalidateContainerSurfaces(containerId);
+}
+
+async function saveUnloadPlan(containerId: string, formData: FormData) {
+  "use server";
+
+  const container = containerShipments.find((entry) => entry.id === containerId);
+  if (!container) return;
+
+  const existingPlan = containerUnloadPlans.find((entry) => entry.containerId === containerId);
+  const estimatedUnitsRaw = String(formData.get("estimatedUnits") ?? "0");
+  const estimatedPalletsRaw = String(formData.get("estimatedPallets") ?? "0");
+  const selectedStatus = String(formData.get("status") ?? "Not Scheduled");
+  const parsedUnits = Number.parseInt(estimatedUnitsRaw, 10);
+  const parsedPallets = Number.parseInt(estimatedPalletsRaw, 10);
+
+  const plan =
+    existingPlan ?? {
+      containerId,
+      scheduledUnloadDate: null,
+      scheduledUnloadTime: null,
+      warehouseBay: null,
+      forkliftNeeded: true,
+      staffAssigned: [],
+      estimatedPallets: Math.max(1, Math.ceil(getContainerTotalUnits(container) / 8)),
+      estimatedUnits: getContainerTotalUnits(container),
+      notes: "",
+      status: "Not Scheduled" as const,
+    };
+
+  plan.scheduledUnloadDate = cleanText(formData.get("scheduledUnloadDate"));
+  plan.scheduledUnloadTime = cleanText(formData.get("scheduledUnloadTime"));
+  plan.warehouseBay = cleanText(formData.get("warehouseBay"));
+  plan.forkliftNeeded = String(formData.get("forkliftNeeded") ?? "yes") === "yes";
+  plan.staffAssigned = String(formData.get("staffAssigned") ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  plan.estimatedUnits = Number.isFinite(parsedUnits) && parsedUnits > 0 ? parsedUnits : getContainerTotalUnits(container);
+  plan.estimatedPallets = Number.isFinite(parsedPallets) && parsedPallets > 0 ? parsedPallets : Math.max(1, Math.ceil(plan.estimatedUnits / 8));
+  plan.status = unloadStatuses.includes(selectedStatus as ContainerUnloadPlanStatus)
+    ? (selectedStatus as ContainerUnloadPlanStatus)
+    : "Not Scheduled";
+
+  if (!existingPlan) {
+    containerUnloadPlans.push(plan);
+  }
+
+  revalidateContainerSurfaces(containerId);
+}
+
+async function saveDocuments(containerId: string, formData: FormData) {
+  "use server";
+
+  const existingDocs = containerDocumentsById[containerId] ?? [
+    { label: "Supplier invoice", uploadedAt: null, status: "Missing" },
+    { label: "Packing list", uploadedAt: null, status: "Missing" },
+    { label: "Bill of lading", uploadedAt: null, status: "Missing" },
+    { label: "Delivery appointment", uploadedAt: null, status: "Missing" },
+  ];
+
+  const today = new Date().toISOString().slice(0, 10);
+  const updated: ContainerDocument[] = existingDocs.map((doc, index) => {
+    const selected = formData.get(`doc-${index}`) === "on";
+    return {
+      label: doc.label,
+      status: selected ? "Uploaded" : "Missing",
+      uploadedAt: selected ? doc.uploadedAt ?? today : null,
+    };
+  });
+
+  containerDocumentsById[containerId] = updated;
+  revalidateContainerSurfaces(containerId);
+}
+
+async function saveInternalNotes(containerId: string, formData: FormData) {
+  "use server";
+
+  const notes = String(formData.get("notes") ?? "").trim();
+  const plan = containerUnloadPlans.find((entry) => entry.containerId === containerId);
+
+  if (plan) {
+    plan.notes = notes;
+  } else {
+    const container = containerShipments.find((entry) => entry.id === containerId);
+    if (container) {
+      containerUnloadPlans.push({
+        containerId,
+        scheduledUnloadDate: null,
+        scheduledUnloadTime: null,
+        warehouseBay: null,
+        forkliftNeeded: true,
+        staffAssigned: [],
+        estimatedPallets: Math.max(1, Math.ceil(getContainerTotalUnits(container) / 8)),
+        estimatedUnits: getContainerTotalUnits(container),
+        notes,
+        status: "Not Scheduled",
+      });
+    }
+  }
+
+  revalidateContainerSurfaces(containerId);
 }
 
 export default async function ContainerDetailPage({ params }: ContainerDetailPageProps) {
@@ -199,16 +309,46 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
 
       <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
         <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Warehouse Unload Plan</div>
-        <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
-          <SummaryField label="Scheduled unload date" value={unloadPlan.scheduledUnloadDate ? formatLongDate(unloadPlan.scheduledUnloadDate) : "Not Scheduled"} compact />
-          <SummaryField label="Scheduled unload time" value={unloadPlan.scheduledUnloadTime ?? "Not Scheduled"} compact />
-          <SummaryField label="Warehouse location / bay" value={unloadPlan.warehouseBay ?? "Not Assigned"} compact />
-          <SummaryField label="Forklift needed" value={unloadPlan.forkliftNeeded ? "Yes" : "No"} compact />
-          <SummaryField label="Staff assigned" value={unloadPlan.staffAssigned.length > 0 ? unloadPlan.staffAssigned.join(", ") : "Unassigned"} compact />
-          <SummaryField label="Estimated pallets / units" value={`${unloadPlan.estimatedPallets} pallets / ${unloadPlan.estimatedUnits} units`} compact />
-          <SummaryField label="Status" value={unloadPlan.status} compact />
-          <SummaryField label="Notes" value={unloadPlan.notes || "No notes yet"} compact />
-        </div>
+        <form action={saveUnloadPlan.bind(null, container.id)} className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+          <EditableField label="Scheduled unload date">
+            <input name="scheduledUnloadDate" type="date" defaultValue={unloadPlan.scheduledUnloadDate ?? ""} className={inputClass} />
+          </EditableField>
+          <EditableField label="Scheduled unload time">
+            <input name="scheduledUnloadTime" type="time" defaultValue={unloadPlan.scheduledUnloadTime ?? ""} className={inputClass} />
+          </EditableField>
+          <EditableField label="Warehouse location / bay">
+            <input name="warehouseBay" type="text" defaultValue={unloadPlan.warehouseBay ?? ""} placeholder="Dock B-2" className={inputClass} />
+          </EditableField>
+          <EditableField label="Forklift needed">
+            <select name="forkliftNeeded" defaultValue={unloadPlan.forkliftNeeded ? "yes" : "no"} className={inputClass}>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </EditableField>
+          <EditableField label="Staff assigned">
+            <input name="staffAssigned" type="text" defaultValue={unloadPlan.staffAssigned.join(", ")} placeholder="Luis P, Mina R" className={inputClass} />
+          </EditableField>
+          <EditableField label="Estimated pallets">
+            <input name="estimatedPallets" type="number" min={1} defaultValue={String(unloadPlan.estimatedPallets)} className={inputClass} />
+          </EditableField>
+          <EditableField label="Estimated units">
+            <input name="estimatedUnits" type="number" min={1} defaultValue={String(unloadPlan.estimatedUnits)} className={inputClass} />
+          </EditableField>
+          <EditableField label="Status">
+            <select name="status" defaultValue={unloadPlan.status} className={inputClass}>
+              {unloadStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </EditableField>
+          <div className="md:col-span-2 xl:col-span-4">
+            <button type="submit" className="inline-flex rounded-xl bg-[#8b1e24] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[#75191e]">
+              Save unload plan
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
@@ -261,38 +401,42 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
           <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Documents</div>
-          <div className="space-y-2 p-4">
-            {documents.map((doc) => (
-              <article key={doc.label} className="flex items-center justify-between rounded-xl border border-[var(--line-soft)] bg-[var(--bg-page)] px-3 py-2.5">
+          <form action={saveDocuments.bind(null, container.id)} className="space-y-2 p-4">
+            {documents.map((doc, index) => (
+              <label key={doc.label} className="flex items-center justify-between rounded-xl border border-[var(--line-soft)] bg-[var(--bg-page)] px-3 py-2.5">
                 <div>
                   <p className="text-sm font-semibold text-[var(--text-primary)]">{doc.label}</p>
                   <p className="text-xs text-[var(--text-muted)]">{doc.uploadedAt ? `Uploaded ${formatLongDate(doc.uploadedAt)}` : "Not uploaded"}</p>
                 </div>
-                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${doc.status === "Uploaded" ? "bg-[#e7f6ed] text-[#2f6b4f]" : "bg-[#fbe6e8] text-[#8b1e24]"}`}>
-                  {doc.status}
-                </span>
-              </article>
+                <div className="flex items-center gap-2">
+                  <input name={`doc-${index}`} type="checkbox" defaultChecked={doc.status === "Uploaded"} className="h-4 w-4 accent-[#8b1e24]" />
+                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${doc.status === "Uploaded" ? "bg-[#e7f6ed] text-[#2f6b4f]" : "bg-[#fbe6e8] text-[#8b1e24]"}`}>
+                    {doc.status}
+                  </span>
+                </div>
+              </label>
             ))}
-            <button type="button" className="mt-1 inline-flex rounded-xl border border-[#d4dbe6] bg-white px-3 py-2 text-sm font-semibold text-[#8b1e24] hover:bg-[#fff6f7]">
-              Upload document
+            <button type="submit" className="mt-1 inline-flex rounded-xl border border-[#d4dbe6] bg-white px-3 py-2 text-sm font-semibold text-[#8b1e24] hover:bg-[#fff6f7]">
+              Save document checklist
             </button>
-          </div>
+          </form>
         </section>
 
         <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
           <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Internal Notes</div>
-          <div className="p-4">
+          <form action={saveInternalNotes.bind(null, container.id)} className="p-4">
             <textarea
+              name="notes"
               defaultValue={unloadPlan.notes || "Coordinate with dock team and verify unload checklist before release."}
               className="h-36 w-full rounded-xl border border-[var(--line-soft)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[#8b1e24]"
             />
             <div className="mt-3 flex items-center justify-between">
               <p className="text-xs text-[var(--text-muted)]">Internal planning notes only.</p>
-              <button type="button" className="inline-flex rounded-xl bg-[#8b1e24] px-3 py-2 text-sm font-semibold text-white hover:bg-[#75191e]">
+              <button type="submit" className="inline-flex rounded-xl bg-[#8b1e24] px-3 py-2 text-sm font-semibold text-white hover:bg-[#75191e]">
                 Save notes
               </button>
             </div>
-          </div>
+          </form>
         </section>
       </div>
 
@@ -344,6 +488,23 @@ function formatLongDate(dateText: string) {
   const date = new Date(dateText);
   if (Number.isNaN(date.getTime())) return dateText;
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function cleanText(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+const inputClass = "w-full rounded-lg border border-[var(--line-soft)] bg-white px-2.5 py-2 text-[13px] text-[var(--text-primary)] outline-none focus:border-[#8b1e24]";
+
+function EditableField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="rounded-xl border border-[var(--line-soft)] bg-[var(--bg-page)] px-3 py-2.5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
 }
 
 function SummaryField({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {

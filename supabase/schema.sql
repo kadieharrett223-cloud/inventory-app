@@ -95,6 +95,38 @@ create table if not exists public.container_milestones (
   unique(container_id, stage)
 );
 
+create table if not exists public.container_unload_plans (
+  container_id text primary key references public.container_shipments(id) on delete cascade,
+  scheduled_unload_date date,
+  scheduled_unload_time time,
+  warehouse_bay text,
+  forklift_needed boolean not null default true,
+  staff_assigned text[] not null default '{}',
+  estimated_pallets integer not null default 0,
+  estimated_units integer not null default 0,
+  notes text not null default '',
+  status text not null check (status in ('Not Scheduled', 'Scheduled', 'Ready to Unload', 'Unloaded')),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.container_documents (
+  id uuid primary key default gen_random_uuid(),
+  container_id text not null references public.container_shipments(id) on delete cascade,
+  doc_label text not null,
+  status text not null check (status in ('Uploaded', 'Missing')),
+  uploaded_at date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(container_id, doc_label)
+);
+
+create table if not exists public.container_internal_notes (
+  container_id text primary key references public.container_shipments(id) on delete cascade,
+  notes text not null default '',
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists idx_container_milestones_container_id on public.container_milestones(container_id);
 create index if not exists idx_container_items_container_id on public.container_items(container_id);
 create index if not exists idx_invoice_lines_invoice_id on public.customer_invoice_lines(invoice_id);
+create index if not exists idx_container_documents_container_id on public.container_documents(container_id);

@@ -24,6 +24,14 @@ export type ContainerUnloadPlan = {
   status: ContainerUnloadPlanStatus;
 };
 
+export type ContainerDocumentStatus = "Uploaded" | "Missing";
+
+export type ContainerDocument = {
+  label: string;
+  uploadedAt: string | null;
+  status: ContainerDocumentStatus;
+};
+
 export type ErpProduct = {
   id: string;
   sku: string;
