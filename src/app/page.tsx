@@ -184,6 +184,13 @@ export default function Home() {
       sub: "View backorder report",
       ago: "6h ago",
     },
+    {
+      icon: Container,
+      color: "bg-[#1e3a5f]",
+      title: `Container PO #${inbound[1]?.poNumber ?? "240"} arrived at origin port`,
+      sub: inbound[1]?.origin.split(",").slice(0, 2).join(", ") ?? "Ningbo, China",
+      ago: "8h ago",
+    },
   ];
 
   return (
