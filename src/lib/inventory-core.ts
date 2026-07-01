@@ -49,6 +49,8 @@ export type ErpProduct = {
   name: string;
   category: string;
   dimensions: string;
+  packageWeightLbs: number;
+  packageType: string;
   listPrice: number;
   salePrice: number;
   onFloorQty: number;

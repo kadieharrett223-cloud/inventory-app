@@ -59,9 +59,9 @@ export default function AvailabilityPage() {
       <div className="space-y-5">
         <header className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
           <p className="text-sm font-medium text-[var(--text-muted)]">Inventory Availability</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Live Product Availability</h2>
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Sales Snapshot</h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-muted)]">
-            View current stock, customer allocations, incoming containers, and the next available inventory for every product.
+            Quick view for sales reps: on-floor units, sold commitments, package weight, and the next inbound timing.
           </p>
         </header>
 
@@ -92,13 +92,13 @@ export default function AvailabilityPage() {
           <div className="overflow-x-auto p-4">
             <div className="min-w-[1120px] space-y-3">
               <div className="sticky top-0 z-10 rounded-2xl border border-[var(--line-soft)] bg-[var(--bg-page)] px-4 py-3">
-                <div className="grid grid-cols-[2.4fr_0.9fr_0.9fr_0.9fr_0.9fr_1fr_1.5fr_1.2fr] gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                <div className="grid grid-cols-[2.4fr_0.8fr_0.8fr_0.9fr_1fr_0.9fr_1.5fr_1.2fr] gap-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
                   <span>Product</span>
                   <span>On Floor</span>
                   <span>In Stock</span>
-                  <span>Assigned</span>
+                  <span>Sold</span>
+                  <span>Pkg Wt</span>
                   <span>Available</span>
-                  <span>On Order</span>
                   <span>Next Container</span>
                   <span>ETA</span>
                 </div>
@@ -121,20 +121,20 @@ export default function AvailabilityPage() {
                         : "border-[var(--line-soft)] bg-white hover:-translate-y-[1px] hover:shadow-[0_18px_36px_-30px_rgba(17,24,39,0.45)]"
                     }`}
                   >
-                    <div className="grid grid-cols-[2.4fr_0.9fr_0.9fr_0.9fr_0.9fr_1fr_1.5fr_1.2fr] gap-3">
+                    <div className="grid grid-cols-[2.4fr_0.8fr_0.8fr_0.9fr_1fr_0.9fr_1.5fr_1.2fr] gap-3">
                       <div className="flex items-center gap-3">
                         <ProductThumb label={row.product.name} icon={ProductsIcon} />
                         <div>
                           <p className="text-sm font-semibold text-[var(--text-primary)]">{row.product.name}</p>
-                          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{row.product.sku} • {row.product.category}</p>
+                          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{row.product.sku} • {row.product.category} • {row.product.packageType}</p>
                         </div>
                       </div>
 
                       <Metric value={row.snapshot.floorQty} />
                       <Metric value={row.snapshot.inStockQty} />
                       <Metric value={row.snapshot.soldAssignedQty} color={oversold ? "red" : "default"} />
+                      <Metric value={`${row.product.packageWeightLbs} lb`} color="steel" />
                       <Metric value={row.snapshot.availableNowQty} color={row.snapshot.availableNowQty > 0 ? "green" : "red"} />
-                      <Metric value={row.snapshot.onOrderQty} color="steel" />
 
                       <div className="space-y-1">
                         <span className="inline-flex rounded-full bg-[var(--status-blue-bg)] px-2.5 py-1 text-xs font-semibold text-[var(--status-blue-text)]">
@@ -412,7 +412,7 @@ function ProductThumb({ label, icon: Icon, large = false }: { label: string; ico
   );
 }
 
-function Metric({ value, color = "default" }: { value: number; color?: "default" | "green" | "red" | "steel" }) {
+function Metric({ value, color = "default" }: { value: number | string; color?: "default" | "green" | "red" | "steel" }) {
   const className =
     color === "green"
       ? "text-[var(--status-green-text)]"
