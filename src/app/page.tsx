@@ -1,183 +1,359 @@
 import Link from "next/link";
+import type { ComponentType } from "react";
 import { computeProductAvailability, deriveAssignmentsFromApprovedInvoices, isContainerReceived, isInvoiceEligibleForWarehouse } from "@/lib/inventory-core";
 import { containerShipments, customerInvoices, erpProducts } from "@/lib/inventory-data";
-import { AlertIcon, ArrowUpRightIcon, CheckIcon, ClockIcon, ContainersIcon, DashboardIcon, InventoryIcon, OrdersIcon, ShipIcon } from "@/components/line-icons";
+import { AlertIcon, CheckIcon, ContainersIcon, InventoryIcon, OrdersIcon, ProductsIcon, ShipIcon } from "@/components/line-icons";
 
-function sumBy<T>(items: T[], selector: (item: T) => number) {
-  return items.reduce((total, item) => total + selector(item), 0);
+function shortDate(dateString: string) {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function cardChartPath(index: number) {
+  if (index === 0) return "M1 30 C 12 29, 22 20, 30 24 C 38 26, 50 16, 58 18 C 67 20, 77 5, 95 1";
+  if (index === 1) return "M1 30 C 15 30, 24 22, 34 24 C 45 28, 56 12, 64 16 C 73 21, 85 11, 95 1";
+  if (index === 2) return "M1 30 C 10 28, 19 18, 26 22 C 35 28, 48 16, 58 10 C 66 6, 76 15, 95 1";
+  return "M1 30 C 12 29, 24 24, 34 18 C 44 12, 55 16, 66 10 C 76 3, 86 6, 95 1";
 }
 
 export default function Home() {
   const assignments = deriveAssignmentsFromApprovedInvoices(customerInvoices);
   const snapshots = erpProducts.map((product) => computeProductAvailability(product, assignments, containerShipments));
 
-  const totalAvailableNow = sumBy(snapshots, (snapshot) => snapshot.availableNowQty);
-  const totalIncoming = sumBy(snapshots, (snapshot) => snapshot.incomingQty);
-  const totalAssigned = sumBy(snapshots, (snapshot) => snapshot.soldAssignedQty);
+  const totalFloor = snapshots.reduce((sum, snapshot) => sum + snapshot.floorQty + snapshot.inStockQty, 0);
+  const totalIncoming = snapshots.reduce((sum, snapshot) => sum + snapshot.onOrderQty, 0);
+  const totalAssigned = snapshots.reduce((sum, snapshot) => sum + snapshot.soldAssignedQty, 0);
+  const oversoldUnits = snapshots.reduce((sum, snapshot) => sum + snapshot.oversoldQty, 0);
+  const ordersWaiting = customerInvoices.filter((invoice) => isInvoiceEligibleForWarehouse(invoice) && !invoice.approvedByShipping);
+  const ordersReady = customerInvoices.filter((invoice) => invoice.approvedByShipping);
   const lowProducts = snapshots.filter((snapshot) => snapshot.availableNowQty <= 5).length;
-  const containersInTransit = containerShipments.filter((container) => !isContainerReceived(container)).length;
-  const ordersWaitingApproval = customerInvoices.filter((invoice) => isInvoiceEligibleForWarehouse(invoice) && !invoice.approvedByShipping).length;
-  const nextContainer = containerShipments.find((container) => !isContainerReceived(container)) ?? containerShipments[0];
 
-  const cards = [
+  const inbound = containerShipments
+    .filter((container) => !isContainerReceived(container))
+    .slice()
+    .sort((a, b) => a.portDate.localeCompare(b.portDate));
+
+  const kpiCards = [
     {
-      title: "Inventory",
-      value: totalAvailableNow,
-      subtitle: "Available now",
-      tone: "green",
-      strip: "bg-[var(--status-green-text)]",
+      title: "Inventory on Floor",
+      value: totalFloor,
+      sub: "Units available now",
+      trend: `${Math.max(1, Math.round(totalFloor / 8))} vs last 30 days`,
+      tone: "text-[#0f3c8c]",
       icon: InventoryIcon,
     },
     {
-      title: "Incoming Containers",
+      title: "Incoming Units",
       value: totalIncoming,
-      subtitle: `Next arrival: ${nextContainer?.portDate ?? "—"}`,
-      tone: "blue",
-      strip: "bg-[var(--status-blue-text)]",
+      sub: "On containers",
+      trend: `Next arrival: ${shortDate(inbound[0]?.portDate ?? "")}`,
+      tone: "text-[#1e40af]",
       icon: ShipIcon,
     },
     {
-      title: "Orders Waiting",
-      value: ordersWaitingApproval,
-      subtitle: "Awaiting shipping approval",
-      tone: "orange",
-      strip: "bg-[var(--status-yellow-text)]",
+      title: "Assigned / Sold",
+      value: totalAssigned,
+      sub: "Units committed",
+      trend: `${Math.max(1, Math.round(totalAssigned / 10))} vs last 30 days`,
+      tone: "text-[#a16207]",
       icon: OrdersIcon,
     },
     {
-      title: "Containers In Transit",
-      value: containersInTransit,
-      subtitle: "Tracking active",
-      tone: "gray",
-      strip: "bg-[var(--status-gray-text)]",
-      icon: ContainersIcon,
+      title: "Backordered Units",
+      value: oversoldUnits,
+      sub: "Units oversold",
+      trend: oversoldUnits > 0 ? "Action needed" : "No issues",
+      tone: oversoldUnits > 0 ? "text-[#8b1e24]" : "text-[#166534]",
+      icon: AlertIcon,
     },
   ] as const;
 
-  const actions = [
+  const activity = [
     {
-      title: "Review Orders",
-      description: "Approve paid invoices and move them into shipping.",
-      href: "/orders",
+      icon: ContainersIcon,
+      color: "bg-[#0f3c8c]",
+      title: `Container PO #${inbound[0]?.poNumber ?? "---"} status updated`,
+      sub: inbound[0]?.status ?? "On Ship",
+      ago: "1h ago",
+    },
+    {
       icon: CheckIcon,
-      accent: "bg-[var(--brand-accent)]",
+      color: "bg-[#15803d]",
+      title: `Order #${ordersReady[0]?.invoiceNo ?? "126088"} approved for shipping`,
+      sub: `${ordersReady[0]?.customerName ?? "4PHR-9X"} (${ordersReady[0]?.lines.reduce((s, l) => s + l.qty, 0) ?? 2} units)`,
+      ago: "2h ago",
     },
     {
-      title: "Check Availability",
-      description: "See the spreadsheet-style availability math for every product.",
-      href: "/availability",
-      icon: DashboardIcon,
-      accent: "bg-[var(--status-blue-text)]",
+      icon: ProductsIcon,
+      color: "bg-[#334155]",
+      title: "Inventory received into warehouse",
+      sub: `PO #${containerShipments[2]?.poNumber ?? "238"} - ${containerShipments[2]?.items.reduce((s, i) => s + i.qty, 0) ?? 28} units`,
+      ago: "4h ago",
     },
     {
-      title: "Open Containers",
-      description: "Follow the progress timeline from ordered to warehouse.",
-      href: "/containers",
-      icon: ClockIcon,
-      accent: "bg-[var(--status-gray-text)]",
+      icon: AlertIcon,
+      color: "bg-[#a16207]",
+      title: `Product ${erpProducts[0]?.sku ?? "4PHR-9X"} is oversold by ${Math.max(0, oversoldUnits)} units`,
+      sub: "View backorder report",
+      ago: "6h ago",
     },
   ];
 
   return (
-    <section className="space-y-6">
-      <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
-          <p className="text-sm font-medium text-[var(--text-muted)]">Good morning, Kadie.</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight text-[var(--text-primary)]">Premium logistics software for Olympic Equipment.</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-muted)]">
-            Fast answers for warehouse managers, logistics coordinators, and sales teams. Inventory, containers, and orders stay visible in one operational view.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <StatusPill tone="blue" text={`${containersInTransit} in transit`} />
-            <StatusPill tone="green" text={`${totalAvailableNow} units available now`} />
-            <StatusPill tone="orange" text={`${ordersWaitingApproval} orders waiting`} />
-          </div>
+    <section className="space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-[37px] font-bold tracking-tight text-[#1a2433]">Good morning, Kadie.</h1>
+          <p className="text-[20px] text-[#556273]">Operations dashboard for sales, warehouse, and management.</p>
         </div>
 
-        <div className="rounded-[20px] border border-[var(--line-soft)] bg-white p-6 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Priority</p>
-              <h3 className="mt-1 text-xl font-semibold tracking-tight">Today&apos;s focus</h3>
-            </div>
-            <div className="rounded-2xl bg-[var(--bg-page)] p-3 text-[var(--brand-accent)]">
-              <AlertIcon className="h-6 w-6" />
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full border border-[#d8dee8] bg-white px-4 py-2.5 shadow-sm">
+            <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#6b7280]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3-3" />
+            </svg>
+            <span className="text-sm text-[#6b7280]">Search anything...</span>
+            <span className="rounded-md bg-[#f3f4f6] px-1.5 py-0.5 text-xs font-semibold text-[#4b5563]">K</span>
           </div>
-          <div className="mt-4 space-y-3">
-            <PriorityRow label="Orders ready to approve" value={totalAssigned} tone="green" />
-            <PriorityRow label="Low stock products" value={lowProducts} tone="orange" />
-            <PriorityRow label="Next inbound container" value={nextContainer?.containerNo ?? "—"} tone="blue" />
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#d8dee8] bg-white text-[#334155] shadow-sm">
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5" />
+              <path d="M10 17a2 2 0 0 0 4 0" />
+            </svg>
+            <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#b91c1c] text-xs font-bold text-white">3</span>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => {
+      <div className="grid gap-3 xl:grid-cols-4">
+        {kpiCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <article key={card.title} className="card-hover rounded-[18px] border border-[var(--line-soft)] bg-white shadow-[0_10px_26px_-24px_rgba(17,24,39,0.35)]">
-              <div className={`h-1.5 w-full ${card.strip}`} />
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-[var(--text-muted)]">{card.title}</p>
-                    <p className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text-primary)]">{card.value}</p>
-                    <p className="mt-2 text-sm text-[var(--text-muted)]">{card.subtitle}</p>
-                  </div>
-                  <div className="rounded-2xl bg-[var(--bg-page)] p-3 text-[var(--text-primary)]">
-                    <Icon className="h-6 w-6" />
-                  </div>
+            <article key={card.title} className="relative overflow-hidden rounded-2xl border border-[#d8dee8] bg-white p-4 shadow-[0_18px_35px_-30px_rgba(15,23,42,0.4)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6b7280]">{card.title}</p>
+                  <p className="text-5xl font-bold leading-none text-[#172436]">{card.value}</p>
+                  <p className="text-sm font-medium text-[#334155]">{card.sub}</p>
+                </div>
+                <div className={`rounded-xl p-2.5 text-white ${index === 0 ? "bg-[#143b72]" : index === 1 ? "bg-[#1d4b9b]" : index === 2 ? "bg-[#a26a11]" : "bg-[#a61b20]"}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
               </div>
+              <p className={`mt-3 text-sm font-semibold ${card.tone}`}>↑ {card.trend}</p>
+              <svg viewBox="0 0 96 32" className="pointer-events-none absolute bottom-2 right-2 h-10 w-28 opacity-55" fill="none" strokeWidth="1.7">
+                <path d={cardChartPath(index)} className={index === 0 ? "stroke-[#1d4ed8]" : index === 1 ? "stroke-[#2563eb]" : index === 2 ? "stroke-[#b7791f]" : "stroke-[#b91c1c]"} />
+              </svg>
             </article>
           );
         })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {actions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Link key={action.title} href={action.href} className="card-hover rounded-[18px] border border-[var(--line-soft)] bg-white p-5 shadow-[0_10px_26px_-24px_rgba(17,24,39,0.35)]">
-              <div className={`inline-flex rounded-2xl p-3 text-white ${action.accent}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold tracking-tight">{action.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{action.description}</p>
-              <div className="mt-4 flex items-center gap-2 text-sm font-medium text-[var(--text-primary)]">
-                Open
-                <ArrowUpRightIcon className="h-4 w-4" />
-              </div>
-            </Link>
-          );
-        })}
+      <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
+        <section className="overflow-hidden rounded-2xl border border-[#d8dee8] bg-white shadow-[0_18px_35px_-30px_rgba(15,23,42,0.4)]">
+          <div className="flex items-center justify-between bg-[linear-gradient(90deg,#121f33_0%,#081221_100%)] px-4 py-3 text-white">
+            <h2 className="text-sm font-bold uppercase tracking-[0.08em]">Containers in Transit</h2>
+            <Link href="/containers" className="text-sm font-semibold text-[#ef2d35]">View all containers</Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-[#f8fafc] text-xs uppercase tracking-[0.08em] text-[#64748b]">
+                <tr>
+                  <th className="px-4 py-3">Container / PO #</th>
+                  <th className="px-4 py-3">Supplier</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Location</th>
+                  <th className="px-4 py-3">ETA</th>
+                  <th className="px-4 py-3">Units</th>
+                  <th className="px-4 py-3">Products</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {inbound.map((container) => (
+                  <tr key={container.id} className="border-t border-[#e5eaf1] hover:bg-[#fafcff]">
+                    <td className="px-4 py-3">
+                      <p className="font-bold text-[#172436]">PO #{container.poNumber}</p>
+                      <p className="text-xs text-[#64748b]">{container.containerNo}</p>
+                    </td>
+                    <td className="px-4 py-3 text-[#334155]">{container.supplier}</td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-md bg-[#e5edf6] px-2 py-1 text-xs font-bold text-[#1e3a5f] uppercase">{container.status}</span>
+                    </td>
+                    <td className="px-4 py-3 text-[#334155]">{container.origin.split(",")[0]}, {container.origin.split(",")[2]?.trim() ?? ""}</td>
+                    <td className="px-4 py-3 text-[#1e293b]">{shortDate(container.portDate)}</td>
+                    <td className="px-4 py-3 font-semibold text-[#1e293b]">{container.items.reduce((sum, item) => sum + item.qty, 0)}</td>
+                    <td className="px-4 py-3 font-semibold text-[#1e293b]">{container.items.length}</td>
+                    <td className="px-4 py-3 text-right text-[#94a3b8]">›</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-[#e5eaf1] px-4 py-2.5 text-center text-sm font-semibold text-[#b81d24]">View all containers →</div>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-[#d8dee8] bg-white shadow-[0_18px_35px_-30px_rgba(15,23,42,0.4)]">
+          <div className="bg-[linear-gradient(90deg,#121f33_0%,#081221_100%)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-white">Recent Activity</div>
+          <div className="divide-y divide-[#e5eaf1]">
+            {activity.map((item) => {
+              const Icon = item.icon;
+              return (
+                <article key={`${item.title}-${item.ago}`} className="flex items-start gap-3 px-4 py-3">
+                  <div className={`rounded-full p-2 text-white ${item.color}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-[#172436]">{item.title}</p>
+                    <p className={`text-sm ${item.sub === "View backorder report" ? "font-semibold text-[#b91c1c]" : "text-[#475569]"}`}>{item.sub}</p>
+                  </div>
+                  <span className="text-xs text-[#64748b]">{item.ago}</span>
+                </article>
+              );
+            })}
+          </div>
+          <div className="border-t border-[#e5eaf1] px-4 py-2.5 text-center text-sm font-semibold text-[#b81d24]">View all activity →</div>
+        </section>
       </div>
+
+      <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
+        <section className="overflow-hidden rounded-2xl border border-[#d8dee8] shadow-[0_18px_35px_-30px_rgba(15,23,42,0.4)]">
+          <div className="bg-[linear-gradient(90deg,#121f33_0%,#081221_100%)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-white">Priority Actions</div>
+          <div className="grid gap-px bg-[#1f2937] sm:grid-cols-2 xl:grid-cols-4">
+            <PriorityCard
+              tone="red"
+              value={ordersWaiting.length}
+              title="Orders Waiting Approval"
+              desc="Paid or partially paid invoices need approval."
+              cta="Review Now"
+              icon={OrdersIcon}
+            />
+            <PriorityCard
+              tone="blue"
+              value={inbound.length}
+              title="Container Arriving Tomorrow"
+              desc={`PO #${inbound[0]?.poNumber ?? "---"} arriving ${shortDate(inbound[0]?.portDate ?? "")}`}
+              cta="View Container"
+              icon={ShipIcon}
+            />
+            <PriorityCard
+              tone="amber"
+              value={lowProducts}
+              title="Products Running Low"
+              desc="Track low products before sales over-commit stock."
+              cta="View Inventory"
+              icon={AlertIcon}
+            />
+            <PriorityCard
+              tone="navy"
+              value={ordersReady.length}
+              title="Orders Ready To Ship"
+              desc="Approved and ready for warehouse pick and ship."
+              cta="View Orders"
+              icon={CheckIcon}
+            />
+          </div>
+        </section>
+
+        <div className="space-y-3">
+          <section className="overflow-hidden rounded-2xl border border-[#d8dee8] bg-white shadow-[0_18px_35px_-30px_rgba(15,23,42,0.4)]">
+            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#121f33_0%,#081221_100%)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-white">
+              <span>Arriving Next 7 Days</span>
+              <span className="text-xs text-[#ef2d35]">View schedule</span>
+            </div>
+            <div className="divide-y divide-[#e5eaf1] px-3 py-1">
+              {inbound.slice(0, 3).map((container) => (
+                <div key={`schedule-${container.id}`} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 px-1 py-2.5 text-sm">
+                  <span className="text-[#334155]">{shortDate(container.portDate)}</span>
+                  <span className="font-semibold text-[#172436]">PO #{container.poNumber}</span>
+                  <span className="rounded-md bg-[#e5edf6] px-2 py-1 text-xs font-bold uppercase text-[#1e3a5f]">{container.status}</span>
+                  <span className="text-[#334155]">{container.items.reduce((sum, item) => sum + item.qty, 0)} units</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-[#e5eaf1] px-4 py-2.5 text-center text-sm font-semibold text-[#b81d24]">View full schedule →</div>
+          </section>
+
+          <section className="overflow-hidden rounded-2xl border border-[#d8dee8] bg-white shadow-[0_18px_35px_-30px_rgba(15,23,42,0.4)]">
+            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#121f33_0%,#081221_100%)] px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-white">
+              <span>Integrations Status</span>
+              <span className="text-xs text-[#22c55e]">All systems operational</span>
+            </div>
+            <div className="flex flex-wrap gap-2 p-3">
+              {[
+                "supabase",
+                "quickbooks",
+                "vercel",
+                "project44",
+              ].map((chip) => (
+                <span key={chip} className="inline-flex items-center gap-2 rounded-full border border-[#d9e2ec] bg-[#f8fafc] px-3 py-1.5 text-xs font-semibold text-[#233143]">
+                  <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <p className="text-center text-xs text-[#7b8798]">© 2025 Olympic Equipment LLC. All rights reserved.</p>
     </section>
   );
 }
 
-function StatusPill({ tone, text }: { tone: "blue" | "green" | "orange"; text: string }) {
-  const toneClasses = {
-    blue: "bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]",
-    green: "bg-[var(--status-green-bg)] text-[var(--status-green-text)]",
-    orange: "bg-[var(--status-yellow-bg)] text-[var(--status-yellow-text)]",
-  } as const;
+function PriorityCard({
+  tone,
+  value,
+  title,
+  desc,
+  cta,
+  icon: Icon,
+}: {
+  tone: "red" | "blue" | "amber" | "navy";
+  value: number;
+  title: string;
+  desc: string;
+  cta: string;
+  icon: ComponentType<{ className?: string }>;
+}) {
+  const toneClass =
+    tone === "red"
+      ? "from-[#441318] to-[#2d0d12]"
+      : tone === "blue"
+        ? "from-[#102847] to-[#091a32]"
+        : tone === "amber"
+          ? "from-[#3f2b10] to-[#24180b]"
+          : "from-[#0d223f] to-[#08172d]";
 
-  return <span className={`rounded-full px-3 py-1.5 text-sm font-medium ${toneClasses[tone]}`}>{text}</span>;
-}
+  const iconClass =
+    tone === "red"
+      ? "bg-[#b81d24]"
+      : tone === "blue"
+        ? "bg-[#1d4b9b]"
+        : tone === "amber"
+          ? "bg-[#a26a11]"
+          : "bg-[#1e3a5f]";
 
-function PriorityRow({ label, value, tone }: { label: string; value: number | string; tone: "green" | "orange" | "blue" }) {
-  const toneClasses = {
-    green: "border-[var(--status-green-bg)] text-[var(--status-green-text)]",
-    orange: "border-[var(--status-yellow-bg)] text-[var(--status-yellow-text)]",
-    blue: "border-[var(--status-blue-bg)] text-[var(--status-blue-text)]",
-  } as const;
+  const ctaClass =
+    tone === "red"
+      ? "text-[#ef2d35]"
+      : tone === "blue"
+        ? "text-[#60a5fa]"
+        : tone === "amber"
+          ? "text-[#f59e0b]"
+          : "text-[#93c5fd]";
 
   return (
-    <div className={`flex items-center justify-between rounded-2xl border bg-[var(--bg-page)] px-4 py-3 ${toneClasses[tone]}`}>
-      <span className="text-sm font-medium text-[var(--text-primary)]">{label}</span>
-      <span className="text-lg font-semibold">{value}</span>
-    </div>
+    <article className={`min-h-[172px] bg-gradient-to-br ${toneClass} p-4 text-white`}>
+      <div className={`inline-flex rounded-full p-2.5 ${iconClass}`}>
+        <Icon className="h-[18px] w-[18px]" />
+      </div>
+      <p className="mt-3 text-5xl font-bold leading-none">{value}</p>
+      <p className="mt-1 text-sm font-semibold">{title}</p>
+      <p className="mt-1.5 text-xs text-white/75">{desc}</p>
+      <p className={`mt-3 text-sm font-semibold ${ctaClass}`}>{cta} →</p>
+    </article>
   );
 }
