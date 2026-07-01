@@ -1,4 +1,4 @@
-import type { ContainerDocument, ContainerShipment, ContainerUnloadPlan, CustomerInvoice, ErpProduct, ProductMapping, QboProduct } from "@/lib/inventory-core";
+import type { ContainerDocument, ContainerReceivingLine, ContainerShipment, ContainerUnloadPlan, CustomerInvoice, ErpProduct, ProductMapping, QboProduct } from "@/lib/inventory-core";
 
 export const erpProducts: ErpProduct[] = [
   {
@@ -249,5 +249,20 @@ export const containerDocumentsById: Record<string, ContainerDocument[]> = {
     { label: "Packing list", uploadedAt: "2026-01-06", status: "Uploaded" },
     { label: "Bill of lading", uploadedAt: "2026-02-20", status: "Uploaded" },
     { label: "Delivery appointment", uploadedAt: "2026-04-28", status: "Uploaded" },
+  ],
+};
+
+export const containerReceivingChecksById: Record<string, ContainerReceivingLine[]> = {
+  c226: [
+    { erpProductId: "p1", expectedQty: 30, actualQty: 30, damagedQty: 0, status: "Pending", notes: "" },
+    { erpProductId: "p2", expectedQty: 30, actualQty: 30, damagedQty: 0, status: "Pending", notes: "" },
+  ],
+  c2: [
+    { erpProductId: "p3", expectedQty: 80, actualQty: 80, damagedQty: 0, status: "Pending", notes: "" },
+    { erpProductId: "p4", expectedQty: 24, actualQty: 24, damagedQty: 0, status: "Pending", notes: "" },
+  ],
+  c3: [
+    { erpProductId: "p1", expectedQty: 12, actualQty: 11, damagedQty: 1, status: "Damaged", notes: "1 unit scratched frame." },
+    { erpProductId: "p4", expectedQty: 10, actualQty: 10, damagedQty: 0, status: "Received", notes: "" },
   ],
 };

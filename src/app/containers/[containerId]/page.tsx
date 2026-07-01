@@ -4,13 +4,15 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   type ContainerDocument,
+  type ContainerReceivingLine,
+  type ContainerReceivingStatus,
   type ContainerUnloadPlanStatus,
   deriveAssignmentsFromApprovedInvoices,
   getContainerTotalUnits,
   getReceivedUnitsForProduct,
   isContainerReceived,
 } from "@/lib/inventory-core";
-import { containerDocumentsById, containerShipments, containerUnloadPlans, customerInvoices, erpProducts } from "@/lib/inventory-data";
+import { containerDocumentsById, containerReceivingChecksById, containerShipments, containerUnloadPlans, customerInvoices, erpProducts } from "@/lib/inventory-data";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 type ContainerDetailPageProps = {
@@ -33,6 +35,7 @@ const timelineSteps: TimelineStep[] = [
 ];
 
 const unloadStatuses: ContainerUnloadPlanStatus[] = ["Not Scheduled", "Scheduled", "Ready to Unload", "Unloaded"];
+const receivingStatuses: ContainerReceivingStatus[] = ["Pending", "Received", "Short", "Overage", "Damaged"];
 
 type AppContainer = (typeof containerShipments)[number];
 
@@ -87,7 +90,19 @@ async function fetchContainerFromSupabase(containerId: string): Promise<AppConta
   };
 }
 
-async function fetchContainerSupportData(containerId: string) {
+function getDefaultReceivingChecklist(container: AppContainer): ContainerReceivingLine[] {
+  return container.items.map((item) => ({
+    erpProductId: item.erpProductId,
+    expectedQty: item.qty,
+    actualQty: item.qty,
+    damagedQty: 0,
+    status: "Pending",
+    notes: "",
+  }));
+}
+
+async function fetchContainerSupportData(container: AppContainer) {
+  const containerId = container.id;
   const fallbackPlan = containerUnloadPlans.find((entry) => entry.containerId === containerId) ?? null;
   const fallbackDocs =
     containerDocumentsById[containerId] ??
@@ -97,13 +112,14 @@ async function fetchContainerSupportData(containerId: string) {
       { label: "Bill of lading", uploadedAt: null, status: "Missing" as const },
       { label: "Delivery appointment", uploadedAt: null, status: "Missing" as const },
     ];
+  const fallbackReceiving = containerReceivingChecksById[containerId] ?? getDefaultReceivingChecklist(container);
 
   const supabase = getSupabaseOrNull();
   if (!supabase) {
-    return { unloadPlan: fallbackPlan, documents: fallbackDocs };
+    return { unloadPlan: fallbackPlan, documents: fallbackDocs, receivingChecklist: fallbackReceiving };
   }
 
-  const [planRes, docsRes, notesRes] = await Promise.all([
+  const [planRes, docsRes, notesRes, receivingRes] = await Promise.all([
     supabase
       .from("container_unload_plans")
       .select("scheduled_unload_date, scheduled_unload_time, warehouse_bay, forklift_needed, staff_assigned, estimated_pallets, estimated_units, notes, status")
@@ -111,6 +127,10 @@ async function fetchContainerSupportData(containerId: string) {
       .maybeSingle(),
     supabase.from("container_documents").select("doc_label, uploaded_at, status").eq("container_id", containerId),
     supabase.from("container_internal_notes").select("notes").eq("container_id", containerId).maybeSingle(),
+    supabase
+      .from("container_receiving_checks")
+      .select("erp_product_id, expected_qty, actual_qty, damaged_qty, status, notes")
+      .eq("container_id", containerId),
   ]);
 
   const unloadPlan = planRes.data
@@ -137,7 +157,19 @@ async function fetchContainerSupportData(containerId: string) {
         }))
       : fallbackDocs;
 
-  return { unloadPlan, documents };
+  const receivingChecklist =
+    receivingRes.data && receivingRes.data.length > 0
+      ? receivingRes.data.map((line) => ({
+          erpProductId: line.erp_product_id,
+          expectedQty: line.expected_qty,
+          actualQty: line.actual_qty,
+          damagedQty: line.damaged_qty,
+          status: line.status,
+          notes: line.notes ?? "",
+        }))
+      : fallbackReceiving;
+
+  return { unloadPlan, documents, receivingChecklist };
 }
 
 function revalidateContainerSurfaces(containerId: string) {
@@ -160,9 +192,33 @@ async function receiveIntoInventory(containerId: string) {
   }
 
   const today = new Date().toISOString().slice(0, 10);
+  const fallbackChecklist = containerReceivingChecksById[containerId] ?? getDefaultReceivingChecklist(container);
+  let checklist = fallbackChecklist;
 
   const supabase = getSupabaseOrNull();
   if (supabase) {
+    const { data: receivingRows } = await supabase
+      .from("container_receiving_checks")
+      .select("erp_product_id, actual_qty")
+      .eq("container_id", containerId);
+
+    if (receivingRows && receivingRows.length > 0) {
+      checklist = fallbackChecklist.map((line) => ({
+        ...line,
+        actualQty: receivingRows.find((row) => row.erp_product_id === line.erpProductId)?.actual_qty ?? line.actualQty,
+      }));
+    }
+
+    await Promise.all(
+      checklist.map((line) =>
+        supabase
+          .from("container_items")
+          .update({ qty: Math.max(0, line.actualQty) })
+          .eq("container_id", containerId)
+          .eq("erp_product_id", line.erpProductId),
+      ),
+    );
+
     await supabase
       .from("container_shipments")
       .update({
@@ -191,6 +247,14 @@ async function receiveIntoInventory(containerId: string) {
         { onConflict: "container_id" },
       );
   }
+
+  container.items = container.items.map((item) => {
+    const line = checklist.find((entry) => entry.erpProductId === item.erpProductId);
+    return {
+      ...item,
+      qty: line ? Math.max(0, line.actualQty) : item.qty,
+    };
+  });
 
   container.status = "Received into inventory";
   container.inventoryStatus = "Received";
@@ -368,6 +432,57 @@ async function saveInternalNotes(containerId: string, formData: FormData) {
   revalidateContainerSurfaces(containerId);
 }
 
+async function saveReceivingChecklist(containerId: string, formData: FormData) {
+  "use server";
+
+  const container = containerShipments.find((entry) => entry.id === containerId);
+  if (!container) return;
+
+  const rowCount = Number.parseInt(String(formData.get("rowCount") ?? "0"), 10);
+  const nextChecklist: ContainerReceivingLine[] = [];
+
+  for (let index = 0; index < rowCount; index += 1) {
+    const productId = String(formData.get(`productId-${index}`) ?? "");
+    if (!productId) continue;
+
+    const expectedQty = Number.parseInt(String(formData.get(`expectedQty-${index}`) ?? "0"), 10);
+    const actualQty = Number.parseInt(String(formData.get(`actualQty-${index}`) ?? "0"), 10);
+    const damagedQty = Number.parseInt(String(formData.get(`damagedQty-${index}`) ?? "0"), 10);
+    const statusRaw = String(formData.get(`status-${index}`) ?? "Pending");
+    const notes = String(formData.get(`notes-${index}`) ?? "").trim();
+
+    nextChecklist.push({
+      erpProductId: productId,
+      expectedQty: Number.isFinite(expectedQty) && expectedQty >= 0 ? expectedQty : 0,
+      actualQty: Number.isFinite(actualQty) && actualQty >= 0 ? actualQty : 0,
+      damagedQty: Number.isFinite(damagedQty) && damagedQty >= 0 ? damagedQty : 0,
+      status: receivingStatuses.includes(statusRaw as ContainerReceivingStatus) ? (statusRaw as ContainerReceivingStatus) : "Pending",
+      notes,
+    });
+  }
+
+  containerReceivingChecksById[containerId] = nextChecklist;
+
+  const supabase = getSupabaseOrNull();
+  if (supabase) {
+    await supabase.from("container_receiving_checks").upsert(
+      nextChecklist.map((line) => ({
+        container_id: containerId,
+        erp_product_id: line.erpProductId,
+        expected_qty: line.expectedQty,
+        actual_qty: line.actualQty,
+        damaged_qty: line.damagedQty,
+        status: line.status,
+        notes: line.notes,
+        updated_at: new Date().toISOString(),
+      })),
+      { onConflict: "container_id,erp_product_id" },
+    );
+  }
+
+  revalidateContainerSurfaces(containerId);
+}
+
 export default async function ContainerDetailPage({ params }: ContainerDetailPageProps) {
   const { containerId } = await params;
 
@@ -378,7 +493,7 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
     notFound();
   }
 
-  const supportData = await fetchContainerSupportData(container.id);
+  const supportData = await fetchContainerSupportData(container);
 
   const unloadPlan =
     supportData.unloadPlan ?? {
@@ -400,6 +515,10 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
   const daysUntilWarehouse = dateDiffInDays(container.deliveryDate);
   const locationLabel = deriveLocationLabel(container.status, container.origin, container.portName);
   const documents = supportData.documents;
+  const receivingChecklist = supportData.receivingChecklist;
+  const totalExpected = receivingChecklist.reduce((sum, line) => sum + line.expectedQty, 0);
+  const totalActual = receivingChecklist.reduce((sum, line) => sum + line.actualQty, 0);
+  const totalDamaged = receivingChecklist.reduce((sum, line) => sum + line.damagedQty, 0);
 
   return (
     <section className="mx-auto w-full max-w-6xl space-y-4">
@@ -586,6 +705,86 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+        <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Receiving Reconciliation Checklist</div>
+        <form action={saveReceivingChecklist.bind(null, container.id)} className="space-y-3 p-4">
+          <input type="hidden" name="rowCount" value={String(receivingChecklist.length)} />
+          <div className="grid gap-2 text-[12px] sm:grid-cols-3">
+            <SummaryField label="Expected" value={`${totalExpected} units`} compact />
+            <SummaryField label="Actual Received" value={`${totalActual} units`} compact />
+            <SummaryField label="Damaged" value={`${totalDamaged} units`} compact />
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-[13px]">
+              <thead className="bg-[var(--bg-page)] text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)]">
+                <tr>
+                  <th className="px-3 py-2">Product</th>
+                  <th className="px-3 py-2">Expected</th>
+                  <th className="px-3 py-2">Actual</th>
+                  <th className="px-3 py-2">Damaged</th>
+                  <th className="px-3 py-2">Variance</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {receivingChecklist.map((line, index) => {
+                  const product = erpProducts.find((entry) => entry.id === line.erpProductId);
+                  const variance = line.actualQty - line.expectedQty;
+
+                  return (
+                    <tr key={`${line.erpProductId}-${index}`} className="border-t border-[var(--line-soft)]">
+                      <td className="px-3 py-2.5">
+                        <p className="font-semibold text-[var(--text-primary)]">{product?.name ?? line.erpProductId}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{product?.sku ?? "Unknown SKU"}</p>
+                        <input type="hidden" name={`productId-${index}`} value={line.erpProductId} />
+                        <input type="hidden" name={`expectedQty-${index}`} value={String(line.expectedQty)} />
+                      </td>
+                      <td className="px-3 py-2.5 font-semibold text-[var(--text-primary)]">{line.expectedQty}</td>
+                      <td className="px-3 py-2.5">
+                        <input name={`actualQty-${index}`} type="number" min={0} defaultValue={String(line.actualQty)} className={inputClass} />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <input name={`damagedQty-${index}`} type="number" min={0} defaultValue={String(line.damagedQty)} className={inputClass} />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                            variance < 0 ? "bg-[#fbe6e8] text-[#8b1e24]" : variance > 0 ? "bg-[#fff2d8] text-[#b7791f]" : "bg-[#e7f6ed] text-[#2f6b4f]"
+                          }`}
+                        >
+                          {variance > 0 ? `+${variance}` : variance}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <select name={`status-${index}`} defaultValue={line.status} className={inputClass}>
+                          {receivingStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <input name={`notes-${index}`} type="text" defaultValue={line.notes} placeholder="Short, damaged, missing carton..." className={inputClass} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[var(--text-muted)]">Track shortages and overages before final receiving.</p>
+            <button type="submit" className="inline-flex rounded-xl bg-[#8b1e24] px-3.5 py-2 text-sm font-semibold text-white hover:bg-[#75191e]">
+              Save receiving checklist
+            </button>
+          </div>
+        </form>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">

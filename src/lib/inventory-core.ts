@@ -32,6 +32,17 @@ export type ContainerDocument = {
   status: ContainerDocumentStatus;
 };
 
+export type ContainerReceivingStatus = "Pending" | "Received" | "Short" | "Overage" | "Damaged";
+
+export type ContainerReceivingLine = {
+  erpProductId: string;
+  expectedQty: number;
+  actualQty: number;
+  damagedQty: number;
+  status: ContainerReceivingStatus;
+  notes: string;
+};
+
 export type ErpProduct = {
   id: string;
   sku: string;

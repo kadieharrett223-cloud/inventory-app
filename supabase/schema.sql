@@ -126,7 +126,22 @@ create table if not exists public.container_internal_notes (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.container_receiving_checks (
+  id uuid primary key default gen_random_uuid(),
+  container_id text not null references public.container_shipments(id) on delete cascade,
+  erp_product_id uuid not null references public.erp_products(id),
+  expected_qty integer not null default 0,
+  actual_qty integer not null default 0,
+  damaged_qty integer not null default 0,
+  status text not null check (status in ('Pending', 'Received', 'Short', 'Overage', 'Damaged')),
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(container_id, erp_product_id)
+);
+
 create index if not exists idx_container_milestones_container_id on public.container_milestones(container_id);
 create index if not exists idx_container_items_container_id on public.container_items(container_id);
 create index if not exists idx_invoice_lines_invoice_id on public.customer_invoice_lines(invoice_id);
 create index if not exists idx_container_documents_container_id on public.container_documents(container_id);
+create index if not exists idx_container_receiving_checks_container_id on public.container_receiving_checks(container_id);
