@@ -9,6 +9,21 @@ export type ContainerMilestoneStage =
 
 export type ContainerInventoryStatus = "On Order" | "Partially Received" | "Received";
 
+export type ContainerUnloadPlanStatus = "Not Scheduled" | "Scheduled" | "Ready to Unload" | "Unloaded";
+
+export type ContainerUnloadPlan = {
+  containerId: string;
+  scheduledUnloadDate: string | null;
+  scheduledUnloadTime: string | null;
+  warehouseBay: string | null;
+  forkliftNeeded: boolean;
+  staffAssigned: string[];
+  estimatedPallets: number;
+  estimatedUnits: number;
+  notes: string;
+  status: ContainerUnloadPlanStatus;
+};
+
 export type ErpProduct = {
   id: string;
   sku: string;

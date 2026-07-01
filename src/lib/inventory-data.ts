@@ -1,4 +1,4 @@
-import type { ContainerShipment, CustomerInvoice, ErpProduct, ProductMapping, QboProduct } from "@/lib/inventory-core";
+import type { ContainerShipment, ContainerUnloadPlan, CustomerInvoice, ErpProduct, ProductMapping, QboProduct } from "@/lib/inventory-core";
 
 export const erpProducts: ErpProduct[] = [
   {
@@ -191,3 +191,63 @@ export const containerShipments: ContainerShipment[] = [
     ],
   },
 ];
+
+export const containerUnloadPlans: ContainerUnloadPlan[] = [
+  {
+    containerId: "c226",
+    scheduledUnloadDate: null,
+    scheduledUnloadTime: null,
+    warehouseBay: null,
+    forkliftNeeded: true,
+    staffAssigned: ["Luis P", "Mina R"],
+    estimatedPallets: 14,
+    estimatedUnits: 60,
+    notes: "Awaiting final delivery appointment from carrier.",
+    status: "Not Scheduled",
+  },
+  {
+    containerId: "c2",
+    scheduledUnloadDate: "2026-09-13",
+    scheduledUnloadTime: "08:30",
+    warehouseBay: "Dock B-2",
+    forkliftNeeded: true,
+    staffAssigned: ["Erik T", "Mina R", "Noah D"],
+    estimatedPallets: 21,
+    estimatedUnits: 104,
+    notes: "Confirm wrap disposal and pallet return staging.",
+    status: "Scheduled",
+  },
+  {
+    containerId: "c3",
+    scheduledUnloadDate: "2026-04-30",
+    scheduledUnloadTime: "09:00",
+    warehouseBay: "Dock A-1",
+    forkliftNeeded: true,
+    staffAssigned: ["Warehouse Team A"],
+    estimatedPallets: 9,
+    estimatedUnits: 22,
+    notes: "Completed and reconciled against packing list.",
+    status: "Unloaded",
+  },
+];
+
+export const containerDocumentsById: Record<string, Array<{ label: string; uploadedAt: string | null; status: "Uploaded" | "Missing" }>> = {
+  c226: [
+    { label: "Supplier invoice", uploadedAt: "2026-03-11", status: "Uploaded" },
+    { label: "Packing list", uploadedAt: "2026-03-12", status: "Uploaded" },
+    { label: "Bill of lading", uploadedAt: null, status: "Missing" },
+    { label: "Delivery appointment", uploadedAt: null, status: "Missing" },
+  ],
+  c2: [
+    { label: "Supplier invoice", uploadedAt: "2026-04-22", status: "Uploaded" },
+    { label: "Packing list", uploadedAt: "2026-04-22", status: "Uploaded" },
+    { label: "Bill of lading", uploadedAt: "2026-06-25", status: "Uploaded" },
+    { label: "Delivery appointment", uploadedAt: null, status: "Missing" },
+  ],
+  c3: [
+    { label: "Supplier invoice", uploadedAt: "2026-01-06", status: "Uploaded" },
+    { label: "Packing list", uploadedAt: "2026-01-06", status: "Uploaded" },
+    { label: "Bill of lading", uploadedAt: "2026-02-20", status: "Uploaded" },
+    { label: "Delivery appointment", uploadedAt: "2026-04-28", status: "Uploaded" },
+  ],
+};

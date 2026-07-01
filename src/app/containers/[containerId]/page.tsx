@@ -1,10 +1,69 @@
+import Link from "next/link";
+import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
-import { containerShipments, erpProducts } from "@/lib/inventory-data";
-import { getContainerLineCount, getContainerTotalUnits } from "@/lib/inventory-core";
+import {
+  deriveAssignmentsFromApprovedInvoices,
+  getContainerTotalUnits,
+  getReceivedUnitsForProduct,
+  isContainerReceived,
+} from "@/lib/inventory-core";
+import { containerDocumentsById, containerShipments, containerUnloadPlans, customerInvoices, erpProducts } from "@/lib/inventory-data";
 
 type ContainerDetailPageProps = {
   params: Promise<{ containerId: string }>;
 };
+
+type TimelineStep = {
+  key: "origin" | "ship" | "destination" | "released" | "scheduled" | "arrived" | "received";
+  label: string;
+};
+
+const timelineSteps: TimelineStep[] = [
+  { key: "origin", label: "At origin port" },
+  { key: "ship", label: "On the ship" },
+  { key: "destination", label: "At destination port" },
+  { key: "released", label: "Released from port" },
+  { key: "scheduled", label: "Scheduled for warehouse delivery" },
+  { key: "arrived", label: "Arrived at warehouse" },
+  { key: "received", label: "Unloaded / received into inventory" },
+];
+
+async function receiveIntoInventory(containerId: string) {
+  "use server";
+
+  const container = containerShipments.find((entry) => entry.id === containerId);
+  if (!container || isContainerReceived(container)) {
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  container.status = "Received into inventory";
+  container.inventoryStatus = "Received";
+
+  const existing = new Set(container.milestones.map((item) => item.stage));
+  if (!existing.has("Arrived at warehouse")) {
+    container.milestones.push({ stage: "Arrived at warehouse", date: today });
+  }
+  if (!existing.has("Received into inventory")) {
+    container.milestones.push({ stage: "Received into inventory", date: today });
+  }
+
+  container.milestones.sort((a, b) => a.date.localeCompare(b.date));
+
+  const plan = containerUnloadPlans.find((entry) => entry.containerId === containerId);
+  if (plan) {
+    plan.status = "Unloaded";
+    if (!plan.scheduledUnloadDate) {
+      plan.scheduledUnloadDate = today;
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/availability");
+  revalidatePath("/containers");
+  revalidatePath(`/containers/${containerId}`);
+}
 
 export default async function ContainerDetailPage({ params }: ContainerDetailPageProps) {
   const { containerId } = await params;
@@ -14,73 +73,284 @@ export default async function ContainerDetailPage({ params }: ContainerDetailPag
     notFound();
   }
 
+  const unloadPlan =
+    containerUnloadPlans.find((entry) => entry.containerId === container.id) ?? {
+      containerId: container.id,
+      scheduledUnloadDate: null,
+      scheduledUnloadTime: null,
+      warehouseBay: null,
+      forkliftNeeded: true,
+      staffAssigned: [],
+      estimatedPallets: Math.max(1, Math.ceil(getContainerTotalUnits(container) / 8)),
+      estimatedUnits: getContainerTotalUnits(container),
+      notes: "",
+      status: "Not Scheduled" as const,
+    };
+
+  const assignments = deriveAssignmentsFromApprovedInvoices(customerInvoices);
+  const currentStep = getCurrentTimelineStep(container.status, unloadPlan.scheduledUnloadDate, container.deliveryDate);
+  const daysUntilPortArrival = dateDiffInDays(container.portDate);
+  const daysUntilWarehouse = dateDiffInDays(container.deliveryDate);
+  const locationLabel = deriveLocationLabel(container.status, container.origin, container.portName);
+  const documents =
+    containerDocumentsById[container.id] ??
+    [
+      { label: "Supplier invoice", uploadedAt: null, status: "Missing" as const },
+      { label: "Packing list", uploadedAt: null, status: "Missing" as const },
+      { label: "Bill of lading", uploadedAt: null, status: "Missing" as const },
+      { label: "Delivery appointment", uploadedAt: null, status: "Missing" as const },
+    ];
+
   return (
-    <section className="mx-auto w-full max-w-6xl space-y-5">
-      <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
-          Container / PO #{container.poNumber}
-        </p>
-        <h2 className="mt-2 text-2xl font-bold">{container.containerNo}</h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Supplier {container.supplier} • Tracking {container.trackingNumber} via {container.trackingSource}
-        </p>
-      </div>
+    <section className="mx-auto w-full max-w-6xl space-y-4">
+      <header className="rounded-[20px] border border-[var(--line-soft)] bg-white px-5 py-5 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">Container / PO #{container.poNumber}</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{container.containerNo}</h2>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(container.status)}`}>{container.status}</span>
+        </div>
+        <p className="mt-1.5 text-sm text-[var(--text-muted)]">Supplier {container.supplier} • Tracking {container.trackingNumber} via {container.trackingSource}</p>
+      </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Payment" value={container.paymentStatus} />
-        <Metric label="Container status" value={container.status} />
-        <Metric label="Inventory status" value={container.inventoryStatus} />
-        <Metric label="Uploaded" value={container.uploadedAt} />
-        <Metric label="Origin" value={container.origin} />
-        <Metric label="Origin port date" value={container.originPortDate} />
-        <Metric label="On ship date" value={container.onShipDate} />
-        <Metric label="Port / Arrival date" value={`${container.portDate} (${container.portName})`} />
-        <Metric label="Delivery date" value={container.deliveryDate} />
-        <Metric label="Lines" value={String(getContainerLineCount(container))} />
-        <Metric label="Total units" value={String(getContainerTotalUnits(container))} />
-      </div>
-
-      <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5">
-        <h3 className="text-lg font-bold">Tracking Milestones</h3>
-        <div className="mt-3 space-y-2">
-          {container.milestones.map((milestone) => (
-            <div key={`${milestone.stage}-${milestone.date}`} className="flex items-center justify-between rounded-lg border border-[var(--line-soft)] px-3 py-2 text-sm">
-              <p className="font-semibold">{milestone.stage}</p>
-              <p className="text-[var(--text-muted)]">{milestone.date}</p>
+      <section className="rounded-[20px] border border-[var(--line-soft)] bg-white p-5 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+        <h3 className="text-[13px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Container Tracking Timeline</h3>
+        <div className="mt-4 overflow-x-auto">
+          <div className="min-w-[780px]">
+            <div className="flex items-center">
+              {timelineSteps.map((step, index) => {
+                const state = index < currentStep ? "done" : index === currentStep ? "current" : "future";
+                return (
+                  <div key={step.key} className="flex flex-1 items-center gap-2 last:flex-none">
+                    <div
+                      className={`h-4 w-4 rounded-full border-2 ${
+                        state === "done"
+                          ? "border-[#1e3a5f] bg-[#2f6b4f]"
+                          : state === "current"
+                            ? "border-[#8b1e24] bg-[#8b1e24]"
+                            : "border-[#cfd7e2] bg-white"
+                      }`}
+                    />
+                    {index < timelineSteps.length - 1 ? (
+                      <div className={`h-[3px] flex-1 ${index < currentStep ? "bg-[#1e3a5f]" : "bg-[#dbe2ec]"}`} />
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
-          ))}
+            <div className="mt-2.5 grid grid-cols-7 gap-2 text-[11px] font-semibold leading-4 text-[var(--text-muted)]">
+              {timelineSteps.map((step, index) => (
+                <p key={`${step.key}-label`} className={index <= currentStep ? "text-[#172436]" : "text-[var(--text-muted)]"}>
+                  {step.label}
+                </p>
+              ))}
+            </div>
+          </div>
         </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+        <section className="rounded-[20px] border border-[var(--line-soft)] bg-white p-5 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Status Summary</div>
+          <div className="grid gap-3 p-3 sm:grid-cols-2">
+            <SummaryField label="Current status" value={container.status} />
+            <SummaryField label="Current location" value={locationLabel} />
+            <SummaryField label="Port ETA" value={formatLongDate(container.portDate)} />
+            <SummaryField label="Warehouse delivery" value={formatLongDate(container.deliveryDate)} />
+            <SummaryField
+              label="Days until arrival"
+              value={daysUntilPortArrival >= 0 ? `${daysUntilPortArrival} days to port` : `${Math.abs(daysUntilPortArrival)} days past ETA`}
+            />
+            <SummaryField
+              label="Days until warehouse"
+              value={daysUntilWarehouse >= 0 ? `${daysUntilWarehouse} days to delivery` : `${Math.abs(daysUntilWarehouse)} days past delivery`}
+            />
+            <SummaryField label="Carrier" value={container.trackingSource} />
+            <SummaryField label="Tracking number" value={container.trackingNumber} />
+          </div>
+        </section>
+
+        <section className="rounded-[20px] border border-[var(--line-soft)] bg-white p-5 shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+          <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white">
+            <span>Receive Inventory</span>
+            <span className="text-[#ef2d35]">Warehouse Action</span>
+          </div>
+
+          <div className="space-y-3 p-3 text-sm text-[var(--text-muted)]">
+            <p>
+              When unloaded, this action marks the container as received, rolls quantities into inventory availability, and updates allocation
+              pressure for backordered products.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <SummaryField label="Inventory status" value={container.inventoryStatus} compact />
+              <SummaryField label="Total inbound units" value={String(getContainerTotalUnits(container))} compact />
+            </div>
+            <form action={receiveIntoInventory.bind(null, container.id)}>
+              <button
+                type="submit"
+                disabled={isContainerReceived(container)}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-[#8b1e24] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#75191e] disabled:cursor-not-allowed disabled:bg-[#c9a1a5]"
+              >
+                {isContainerReceived(container) ? "Already Received Into Inventory" : "Receive Into Inventory"}
+              </button>
+            </form>
+          </div>
+        </section>
       </div>
 
-      <div className="rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)] p-5">
-        <h3 className="text-lg font-bold">Products inside container</h3>
-        <div className="mt-3 space-y-2 text-sm">
-          {container.items.map((item) => {
-            const product = erpProducts.find((entry) => entry.id === item.erpProductId);
-            return (
-              <div key={item.erpProductId} className="rounded-lg border border-[var(--line-soft)] px-3 py-2">
-                <p className="font-semibold">{product?.name ?? item.erpProductId}</p>
-                <p className="text-[var(--text-muted)]">{product?.sku ?? "Unknown SKU"}</p>
-                <p className="mt-1">Units: {item.qty}</p>
-              </div>
-            );
-          })}
+      <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+        <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Warehouse Unload Plan</div>
+        <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+          <SummaryField label="Scheduled unload date" value={unloadPlan.scheduledUnloadDate ? formatLongDate(unloadPlan.scheduledUnloadDate) : "Not Scheduled"} compact />
+          <SummaryField label="Scheduled unload time" value={unloadPlan.scheduledUnloadTime ?? "Not Scheduled"} compact />
+          <SummaryField label="Warehouse location / bay" value={unloadPlan.warehouseBay ?? "Not Assigned"} compact />
+          <SummaryField label="Forklift needed" value={unloadPlan.forkliftNeeded ? "Yes" : "No"} compact />
+          <SummaryField label="Staff assigned" value={unloadPlan.staffAssigned.length > 0 ? unloadPlan.staffAssigned.join(", ") : "Unassigned"} compact />
+          <SummaryField label="Estimated pallets / units" value={`${unloadPlan.estimatedPallets} pallets / ${unloadPlan.estimatedUnits} units`} compact />
+          <SummaryField label="Status" value={unloadPlan.status} compact />
+          <SummaryField label="Notes" value={unloadPlan.notes || "No notes yet"} compact />
         </div>
+      </section>
+
+      <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+        <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Products Inside Container</div>
+        <div className="overflow-x-auto p-4">
+          <table className="min-w-full text-left text-[13px]">
+            <thead className="bg-[var(--bg-page)] text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)]">
+              <tr>
+                <th className="px-3 py-2">Product</th>
+                <th className="px-3 py-2">SKU</th>
+                <th className="px-3 py-2">Quantity</th>
+                <th className="px-3 py-2">Already Assigned</th>
+                <th className="px-3 py-2">Available After Orders</th>
+                <th className="px-3 py-2">Receive Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {container.items.map((item) => {
+                const product = erpProducts.find((entry) => entry.id === item.erpProductId);
+                const assigned = assignments.filter((entry) => entry.productId === item.erpProductId).reduce((sum, entry) => sum + entry.qty, 0);
+                const onHandBefore = (product?.onFloorQty ?? 0) + (product?.inStockQty ?? 0) + getReceivedUnitsForProduct(containerShipments, item.erpProductId);
+                const backorderNeed = Math.max(0, assigned - onHandBefore);
+                const alreadyAssigned = Math.min(item.qty, backorderNeed);
+                const availableAfterOrders = item.qty - alreadyAssigned;
+
+                return (
+                  <tr key={item.erpProductId} className="border-t border-[var(--line-soft)]">
+                    <td className="px-3 py-2.5 font-semibold text-[var(--text-primary)]">{product?.name ?? item.erpProductId}</td>
+                    <td className="px-3 py-2.5 text-[var(--text-muted)]">{product?.sku ?? "Unknown SKU"}</td>
+                    <td className="px-3 py-2.5 font-semibold text-[var(--text-primary)]">{item.qty}</td>
+                    <td className="px-3 py-2.5 text-[var(--text-primary)]">{alreadyAssigned}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${availableAfterOrders > 0 ? "bg-[#e7f6ed] text-[#2f6b4f]" : "bg-[#fbe6e8] text-[#8b1e24]"}`}>
+                        {availableAfterOrders} units
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isContainerReceived(container) ? "bg-[#e7f6ed] text-[#2f6b4f]" : "bg-[#e6edf8] text-[#1e3a5f]"}`}>
+                        {isContainerReceived(container) ? "Received" : "Pending Receipt"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Documents</div>
+          <div className="space-y-2 p-4">
+            {documents.map((doc) => (
+              <article key={doc.label} className="flex items-center justify-between rounded-xl border border-[var(--line-soft)] bg-[var(--bg-page)] px-3 py-2.5">
+                <div>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">{doc.label}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{doc.uploadedAt ? `Uploaded ${formatLongDate(doc.uploadedAt)}` : "Not uploaded"}</p>
+                </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${doc.status === "Uploaded" ? "bg-[#e7f6ed] text-[#2f6b4f]" : "bg-[#fbe6e8] text-[#8b1e24]"}`}>
+                  {doc.status}
+                </span>
+              </article>
+            ))}
+            <button type="button" className="mt-1 inline-flex rounded-xl border border-[#d4dbe6] bg-white px-3 py-2 text-sm font-semibold text-[#8b1e24] hover:bg-[#fff6f7]">
+              Upload document
+            </button>
+          </div>
+        </section>
+
+        <section className="rounded-[20px] border border-[var(--line-soft)] bg-white shadow-[0_14px_36px_-30px_rgba(17,24,39,0.45)]">
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white">Internal Notes</div>
+          <div className="p-4">
+            <textarea
+              defaultValue={unloadPlan.notes || "Coordinate with dock team and verify unload checklist before release."}
+              className="h-36 w-full rounded-xl border border-[var(--line-soft)] bg-[var(--bg-page)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:border-[#8b1e24]"
+            />
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs text-[var(--text-muted)]">Internal planning notes only.</p>
+              <button type="button" className="inline-flex rounded-xl bg-[#8b1e24] px-3 py-2 text-sm font-semibold text-white hover:bg-[#75191e]">
+                Save notes
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="flex justify-end">
+        <Link href="/containers" className="text-sm font-semibold text-[#8b1e24] hover:underline">
+          Back to all containers
+        </Link>
       </div>
     </section>
   );
 }
 
-type MetricProps = {
-  label: string;
-  value: string;
-};
+function getCurrentTimelineStep(status: string, scheduledUnloadDate: string | null, _deliveryDate: string | null) {
+  if (status === "Received into inventory") return 6;
+  if (status === "Arrived at warehouse") return 5;
+  if (scheduledUnloadDate) return 4;
+  if (status === "Released from port") return 3;
+  if (status === "At destination port") return 2;
+  if (status === "On the ship") return 1;
+  return 0;
+}
 
-function Metric({ label, value }: MetricProps) {
+function deriveLocationLabel(status: string, origin: string, portName: string) {
+  if (status === "At origin port" || status === "On the ship") return origin;
+  if (status === "At destination port" || status === "Released from port") return `${portName}, US`;
+  if (status === "Arrived at warehouse" || status === "Received into inventory") return "Olympic Warehouse";
+  return origin;
+}
+
+function statusTone(status: string) {
+  const s = status.toLowerCase();
+  if (s.includes("received") || s.includes("arrived")) return "bg-[#e7f6ed] text-[#2f6b4f]";
+  if (s.includes("ship") || s.includes("port") || s.includes("origin") || s.includes("destination")) return "bg-[#e6edf8] text-[#1e3a5f]";
+  if (s.includes("released")) return "bg-[#fff2d8] text-[#b7791f]";
+  return "bg-[#ecf0f5] text-[#334155]";
+}
+
+function dateDiffInDays(dateText: string) {
+  const target = new Date(dateText);
+  if (Number.isNaN(target.getTime())) return 0;
+
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const to = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+  return Math.round((to - from) / (1000 * 60 * 60 * 24));
+}
+
+function formatLongDate(dateText: string) {
+  const date = new Date(dateText);
+  if (Number.isNaN(date.getTime())) return dateText;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function SummaryField({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
   return (
-    <article className="rounded-xl border border-[var(--line-soft)] bg-[var(--panel)] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">{label}</p>
-      <p className="mt-2 text-sm font-semibold">{value}</p>
+    <article className={`rounded-xl border border-[var(--line-soft)] bg-[var(--bg-page)] ${compact ? "px-3 py-2.5" : "px-3 py-3"}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{label}</p>
+      <p className={`mt-1 font-semibold text-[var(--text-primary)] ${compact ? "text-[13px]" : "text-sm"}`}>{value}</p>
     </article>
   );
 }
