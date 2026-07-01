@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { AlertTriangle, Bell, Boxes, CheckCheck, ClipboardCheck, Container, Dot, PackageOpen, Search, ShipWheel, TrendingUp } from "lucide-react";
+import { AlertTriangle, Bell, Boxes, CheckCheck, ClipboardCheck, Container, PackageOpen, Search, ShipWheel, TrendingUp } from "lucide-react";
 import { computeProductAvailability, deriveAssignmentsFromApprovedInvoices, isContainerReceived, isInvoiceEligibleForWarehouse } from "@/lib/inventory-core";
 import { containerShipments, customerInvoices, erpProducts } from "@/lib/inventory-data";
 
@@ -61,7 +61,7 @@ export default function Home() {
       containerNo: container.containerNo,
       supplier: container.supplier,
       status: container.status,
-      location: `${container.origin.split(",")[0]} ${container.origin.split(",")[2]?.trim() ?? ""}`.trim(),
+      location: `${container.origin.split(",")[0]}, ${container.origin.split(",")[2]?.trim() ?? ""}`,
       eta: shortDate(container.portDate),
       units: container.items.reduce((sum, item) => sum + item.qty, 0),
       products: container.items.length,
@@ -72,7 +72,7 @@ export default function Home() {
       containerNo: "COSU1234567",
       supplier: "Highlift",
       status: "At origin port",
-      location: "Ningbo China",
+      location: "Ningbo, China",
       eta: "Jun 28, 2025",
       units: 320,
       products: 27,
@@ -83,7 +83,7 @@ export default function Home() {
       containerNo: "SEGU9876543",
       supplier: "Qingdao Hiker",
       status: "At destination port",
-      location: "Long Beach USA",
+      location: "Long Beach, USA",
       eta: "Jun 20, 2025",
       units: 410,
       products: 31,
@@ -94,7 +94,7 @@ export default function Home() {
       containerNo: "TCLU5566778",
       supplier: "Yizhan Machinery",
       status: "Released from port",
-      location: "Los Angeles USA",
+      location: "Los Angeles, USA",
       eta: "Jun 18, 2025",
       units: 380,
       products: 28,
@@ -193,36 +193,16 @@ export default function Home() {
     },
   ];
 
-  const operationsHealth = Math.max(88, 100 - Math.min(12, oversoldUnits));
-  const liveFeed = [
-    {
-      time: "10:42 AM",
-      event: `Warehouse received Container PO #${containerShipments[2]?.poNumber ?? "226"}`,
-    },
-    {
-      time: "10:37 AM",
-      event: `Invoice #${ordersReady[0]?.invoiceNo ?? "126088"} approved`,
-    },
-    {
-      time: "10:21 AM",
-      event: `Inventory sync completed for ${erpProducts[0]?.sku ?? "4PHR-9X"}`,
-    },
-    {
-      time: "10:12 AM",
-      event: `PO #${inbound[0]?.poNumber ?? "241"} departed ${inbound[0]?.origin.split(",")[0] ?? "Qingdao"}`,
-    },
-  ];
-
   return (
     <section className="space-y-3">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[48px] font-bold leading-[1] tracking-tight text-[#192536]">Operations Dashboard</h1>
-          <p className="text-[14px] text-[#5c6878]">Good morning, Kadie. Operations dashboard for sales, warehouse, and management.</p>
+          <h1 className="text-[48px] font-bold leading-[1] tracking-tight text-[#192536]">Good morning, Kadie.</h1>
+          <p className="text-[14px] text-[#5c6878]">Operations dashboard for sales, warehouse, and management.</p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button className="inline-flex h-9 min-w-[232px] items-center gap-2 rounded-full border border-[#d9e1eb] bg-white px-3.5 text-[13px] text-[#667589] shadow-sm">
+          <button className="inline-flex h-9 items-center gap-2 rounded-full border border-[#d9e1eb] bg-white px-3.5 text-[13px] text-[#667589] shadow-sm">
             <Search className="h-3.5 w-3.5" />
             <span>Search anything...</span>
             <span className="rounded-md bg-[#f1f4f9] px-1.5 py-0.5 text-[11px] font-semibold text-[#5e6b7a]">K</span>
@@ -235,50 +215,15 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="grid gap-3 xl:grid-cols-[1.85fr_1fr]">
-        <section className="overflow-hidden rounded-xl border border-[#d7dfeb] bg-white shadow-[0_24px_46px_-30px_rgba(15,23,42,0.56)]">
-          <div className="bg-[#111827] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Operations Health</div>
-          <div className="grid gap-3 p-4 sm:grid-cols-[auto_1fr] sm:items-center">
-            <div className="text-[60px] font-bold leading-none text-[#111827]">{operationsHealth}%</div>
-            <div className="space-y-2">
-              <p className="text-[13px] text-[#334155]">Everything is running normally with monitored exceptions highlighted below.</p>
-              <div className="flex flex-wrap gap-2 text-[12px] font-semibold">
-                <span className="rounded-full bg-[#eef2ff] px-2.5 py-1 text-[#1e3a5f]">{inbound.length} containers in transit</span>
-                <span className="rounded-full bg-[#ecfeff] px-2.5 py-1 text-[#0f766e]">{totalIncoming} units inbound</span>
-                <span className="rounded-full bg-[#fff7ed] px-2.5 py-1 text-[#b45309]">{ordersWaiting.length} orders waiting</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="overflow-hidden rounded-xl border border-[#d7dfeb] bg-white shadow-[0_24px_46px_-30px_rgba(15,23,42,0.56)]">
-          <div className="flex items-center justify-between bg-[#111827] px-4 py-2.5 text-white">
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em]">
-              <Dot className="h-4 w-4 text-[#ef2d35]" />
-              Live
-            </div>
-            <span className="text-[11px] text-white/70">Refresh 30s</span>
-          </div>
-          <div className="divide-y divide-[#e6ebf2]">
-            {liveFeed.map((entry) => (
-              <article key={`${entry.time}-${entry.event}`} className="grid grid-cols-[auto_1fr] gap-2 px-3.5 py-2.5">
-                <span className="text-[11px] font-semibold text-[#607287]">{entry.time}</span>
-                <p className="truncate text-[12px] font-medium text-[#1f2e40]">{entry.event}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      </div>
-
       <div className="grid gap-3 xl:grid-cols-4">
         {kpiCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <article key={card.title} className="relative min-h-[152px] overflow-hidden rounded-xl border border-[#d8e0eb] bg-white px-3.5 py-3 shadow-[0_24px_46px_-30px_rgba(15,23,42,0.56)]">
+            <article key={card.title} className="relative min-h-[152px] overflow-hidden rounded-xl border border-[#d8e0eb] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-3.5 py-3 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[52px] font-bold leading-none text-[#172436]">{card.value}</p>
-                  <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5c697b]">{card.title}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#5c697b]">{card.title}</p>
+                  <p className="mt-0.5 text-[52px] font-bold leading-none text-[#172436]">{card.value}</p>
                   <p className="mt-0.5 text-[12px] font-medium text-[#334155]">{card.sub}</p>
                 </div>
                 <div className={`rounded-lg p-2 text-white ${card.iconBg}`}>
@@ -298,8 +243,8 @@ export default function Home() {
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[2fr_1.15fr]">
-        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_24px_46px_-30px_rgba(15,23,42,0.56)]">
-          <div className="flex items-center justify-between bg-[#111827] px-4 py-2.5 text-white">
+        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+          <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-white">
             <h2 className="text-[11px] font-bold uppercase tracking-[0.1em]">Containers in Transit</h2>
             <Link href="/containers" className="text-[12px] font-semibold text-[#ef2d35]">View all containers</Link>
           </div>
@@ -322,14 +267,12 @@ export default function Home() {
                   return (
                     <tr key={container.id} className="border-t border-[#e5eaf1] hover:bg-[#fafcff]">
                       <td className="px-3.5 py-2.5">
-                        <Link href={container.id.startsWith("mock-") ? "/containers" : `/containers/${container.id}`} className="font-bold text-[#1d4b9b] underline decoration-[#1d4b9b]/40 underline-offset-2 hover:text-[#0f2d5f]">
-                          PO #{container.poNumber}
-                        </Link>
+                        <p className="font-bold text-[#172436]">PO #{container.poNumber}</p>
                         <p className="text-[11px] text-[#65758a]">{container.containerNo}</p>
                       </td>
-                      <td className="max-w-[160px] whitespace-nowrap px-3.5 py-2.5 text-[#334155]">{container.supplier}</td>
+                      <td className="px-3.5 py-2.5 text-[#334155] whitespace-normal max-w-[120px] leading-4.5">{container.supplier}</td>
                       <td className="px-3.5 py-2.5">
-                        <span className={`rounded-full px-1.5 py-[2px] text-[10px] font-bold uppercase ${statusTone(container.status)}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${statusTone(container.status)}`}>
                           {container.status}
                         </span>
                       </td>
@@ -347,15 +290,15 @@ export default function Home() {
           <div className="border-t border-[#e5eaf1] px-4 py-2 text-center text-[12px] font-semibold text-[#b81d24]">View all containers →</div>
         </section>
 
-        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_24px_46px_-30px_rgba(15,23,42,0.56)]">
-          <div className="bg-[#111827] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Recent Activity</div>
+        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Recent Activity</div>
           <div className="divide-y divide-[#e5eaf1] px-1">
             {activity.map((item) => {
               const Icon = item.icon;
               return (
-                <article key={`${item.title}-${item.ago}`} className="flex items-start gap-2.5 px-3.5 py-2.5">
-                  <div className={`rounded-full p-1.25 text-white ${item.color}`}>
-                    <Icon className="h-3 w-3" />
+                <article key={`${item.title}-${item.ago}`} className="flex items-start gap-2.5 px-3.5 py-3">
+                  <div className={`rounded-full p-1.5 text-white ${item.color}`}>
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-[#172436]">{item.title}</p>
@@ -375,8 +318,8 @@ export default function Home() {
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
-        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] shadow-[0_24px_46px_-30px_rgba(15,23,42,0.56)]">
-          <div className="bg-[#111827] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Priority Actions</div>
+        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Priority Actions</div>
           <div className="grid gap-px bg-[#1f2937] sm:grid-cols-2 xl:grid-cols-4">
             <PriorityCard
               tone="red"
@@ -415,7 +358,7 @@ export default function Home() {
 
         <div className="space-y-3">
           <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-            <div className="flex items-center justify-between bg-[#111827] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
+            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
               <span>Arriving Next 7 Days</span>
               <span className="text-[11px] text-[#ef2d35]">View schedule</span>
             </div>
@@ -424,16 +367,16 @@ export default function Home() {
                 <div key={`schedule-${container.id}`} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2.5 py-2 text-[13px]">
                   <span className="text-[#334155]">{container.eta}</span>
                   <span className="font-semibold text-[#172436]">PO #{container.poNumber}</span>
-                  <span className={`rounded-full px-1.5 py-[2px] text-[10px] font-bold uppercase ${statusTone(container.status)}`}>{container.status}</span>
-                  <span className="inline-flex w-fit rounded-full bg-[#eef2ff] px-2 py-0.5 text-[11px] font-semibold text-[#1e3a5f]">{container.units} units</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${statusTone(container.status)}`}>{container.status}</span>
+                  <span className="text-[#334155]">{container.units} units</span>
                 </div>
               ))}
             </div>
             <div className="border-t border-[#e5eaf1] px-4 py-2 text-center text-[12px] font-semibold text-[#b81d24]">View full schedule →</div>
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_24px_46px_-30px_rgba(15,23,42,0.56)]">
-            <div className="flex items-center justify-between bg-[#111827] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
+          <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
               <span>Integrations Status</span>
               <span className="text-[11px] text-[#22c55e]">All systems operational</span>
             </div>
@@ -497,16 +440,8 @@ function PriorityCard({
           : "text-[#99c3ff]";
 
   return (
-    <article
-      className={`relative min-h-[166px] overflow-hidden bg-gradient-to-br ${toneClass} px-3 py-3 text-white`}
-      style={{
-        backgroundImage:
-          `linear-gradient(160deg, rgba(8,14,24,0.72), rgba(8,14,24,0.9)), url("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=70")`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0)_42%)]" />
+    <article className={`relative min-h-[166px] overflow-hidden bg-gradient-to-br ${toneClass} px-3 py-3 text-white`}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0)_40%)]" />
       <div className="relative">
         <div className={`inline-flex rounded-full p-2 ${iconClass}`}>
           <Icon className="h-4 w-4" />
