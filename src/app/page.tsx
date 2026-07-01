@@ -128,52 +128,52 @@ export default function Home() {
   ];
 
   return (
-    <section className="space-y-5">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+    <section className="space-y-3.5">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[39px] font-bold tracking-tight text-[#192536]">Good morning, Kadie.</h1>
-          <p className="text-[20px] text-[#5c6878]">Operations dashboard for sales, warehouse, and management.</p>
+          <h1 className="text-[50px] font-bold leading-[1] tracking-tight text-[#192536]">Good morning, Kadie.</h1>
+          <p className="text-[14px] text-[#5c6878]">Operations dashboard for sales, warehouse, and management.</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="inline-flex items-center gap-2 rounded-full border border-[#d9e1eb] bg-white px-4 py-2.5 text-sm text-[#667589] shadow-sm">
-            <Search className="h-4 w-4" />
+        <div className="flex items-center gap-2.5">
+          <button className="inline-flex items-center gap-2 rounded-full border border-[#d9e1eb] bg-white px-3.5 py-2 text-[13px] text-[#667589] shadow-sm">
+            <Search className="h-3.5 w-3.5" />
             <span>Search anything...</span>
-            <span className="rounded-md bg-[#f1f4f9] px-1.5 py-0.5 text-xs font-semibold text-[#5e6b7a]">K</span>
+            <span className="rounded-md bg-[#f1f4f9] px-1.5 py-0.5 text-[11px] font-semibold text-[#5e6b7a]">K</span>
           </button>
 
-          <button className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d9e1eb] bg-white text-[#415165] shadow-sm">
-            <Bell className="h-[17px] w-[17px]" />
-            <span className="absolute -right-1 -top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#b81d24] text-[11px] font-bold text-white">3</span>
+          <button className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d9e1eb] bg-white text-[#415165] shadow-sm">
+            <Bell className="h-4 w-4" />
+            <span className="absolute -right-1 -top-1 inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#b81d24] text-[10px] font-bold text-white">3</span>
           </button>
 
-          <button className="inline-flex items-center gap-2 rounded-full bg-[#8b1e24] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_24px_-18px_rgba(139,30,36,0.9)] hover:bg-[#7a181e]">
-            <Plus className="h-4 w-4" />
+          <button className="inline-flex items-center gap-2 rounded-full bg-[#8b1e24] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(139,30,36,0.9)] hover:bg-[#7a181e]">
+            <Plus className="h-3.5 w-3.5" />
             New Item
           </button>
         </div>
       </header>
 
-      <div className="grid gap-4 xl:grid-cols-4">
+      <div className="grid gap-3 xl:grid-cols-4">
         {kpiCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <article key={card.title} className="relative overflow-hidden rounded-2xl border border-[#d8e0eb] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+            <article key={card.title} className="relative min-h-[152px] overflow-hidden rounded-xl border border-[#d8e0eb] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-3.5 py-3 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#5c697b]">{card.title}</p>
-                  <p className="mt-1 text-5xl font-bold leading-none text-[#172436]">{card.value}</p>
-                  <p className="mt-1 text-sm font-medium text-[#334155]">{card.sub}</p>
+                  <p className="mt-0.5 text-[52px] font-bold leading-none text-[#172436]">{card.value}</p>
+                  <p className="mt-0.5 text-[12px] font-medium text-[#334155]">{card.sub}</p>
                 </div>
-                <div className={`rounded-xl p-2.5 text-white ${card.iconBg}`}>
-                  <Icon className="h-5 w-5" />
+                <div className={`rounded-lg p-2 text-white ${card.iconBg}`}>
+                  <Icon className="h-4 w-4" />
                 </div>
               </div>
-              <p className={`mt-3 inline-flex items-center gap-1 text-sm font-semibold ${card.tone}`}>
-                <TrendingUp className="h-3.5 w-3.5" />
+              <p className={`mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold ${card.tone}`}>
+                <TrendingUp className="h-3 w-3" />
                 {card.trend}
               </p>
-              <svg viewBox="0 0 96 32" className="pointer-events-none absolute bottom-2 right-2 h-10 w-28 opacity-60" fill="none" strokeWidth="1.7">
+              <svg viewBox="0 0 96 32" className="pointer-events-none absolute bottom-1.5 right-1.5 h-8 w-20 opacity-60" fill="none" strokeWidth="1.7">
                 <path d={chartPath(index)} className={card.chartStroke} />
               </svg>
             </article>
@@ -181,25 +181,25 @@ export default function Home() {
         })}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <section className="overflow-hidden rounded-2xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-          <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-5 py-3.5 text-white">
-            <h2 className="text-sm font-bold uppercase tracking-[0.08em]">Containers in Transit</h2>
-            <Link href="/containers" className="text-sm font-semibold text-[#ef2d35]">View all containers</Link>
+      <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
+        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+          <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-white">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.1em]">Containers in Transit</h2>
+            <Link href="/containers" className="text-[12px] font-semibold text-[#ef2d35]">View all containers</Link>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-[#f7f9fc] text-xs uppercase tracking-[0.08em] text-[#65758a]">
+            <table className="min-w-full text-left text-[13px]">
+              <thead className="bg-[#f7f9fc] text-[11px] uppercase tracking-[0.08em] text-[#65758a]">
                 <tr>
-                  <th className="px-5 py-3.5">Container / PO #</th>
-                  <th className="px-5 py-3.5">Supplier</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5">Progress</th>
-                  <th className="px-5 py-3.5">Location</th>
-                  <th className="px-5 py-3.5">ETA</th>
-                  <th className="px-5 py-3.5">Units</th>
-                  <th className="px-5 py-3.5">Products</th>
-                  <th className="px-5 py-3.5" />
+                  <th className="px-3.5 py-2.5">Container / PO #</th>
+                  <th className="px-3.5 py-2.5">Supplier</th>
+                  <th className="px-3.5 py-2.5">Status</th>
+                  <th className="px-3.5 py-2.5">Progress</th>
+                  <th className="px-3.5 py-2.5">Location</th>
+                  <th className="px-3.5 py-2.5">ETA</th>
+                  <th className="px-3.5 py-2.5">Units</th>
+                  <th className="px-3.5 py-2.5">Products</th>
+                  <th className="px-3.5 py-2.5" />
                 </tr>
               </thead>
               <tbody>
@@ -207,63 +207,63 @@ export default function Home() {
                   const stage = progressSteps(container.status);
                   return (
                     <tr key={container.id} className="border-t border-[#e5eaf1] hover:bg-[#fafcff]">
-                      <td className="px-5 py-4">
+                      <td className="px-3.5 py-2.5">
                         <p className="font-bold text-[#172436]">PO #{container.poNumber}</p>
-                        <p className="text-xs text-[#65758a]">{container.containerNo}</p>
+                        <p className="text-[11px] text-[#65758a]">{container.containerNo}</p>
                       </td>
-                      <td className="px-5 py-4 text-[#334155] whitespace-normal max-w-[140px] leading-5">{container.supplier}</td>
-                      <td className="px-5 py-4">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${statusTone(container.status)}`}>
+                      <td className="px-3.5 py-2.5 text-[#334155] whitespace-normal max-w-[120px] leading-4.5">{container.supplier}</td>
+                      <td className="px-3.5 py-2.5">
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${statusTone(container.status)}`}>
                           {container.status}
                         </span>
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5">
+                      <td className="px-3.5 py-2.5">
+                        <div className="flex items-center gap-1">
                           {[0, 1, 2, 3, 4, 5].map((i) => (
-                            <span key={`${container.id}-p-${i}`} className={`h-2 w-2 rounded-full ${i <= stage ? "bg-[#1e3a5f]" : "bg-[#d3dae6]"}`} />
+                            <span key={`${container.id}-p-${i}`} className={`h-1.5 w-1.5 rounded-full ${i <= stage ? "bg-[#1e3a5f]" : "bg-[#d3dae6]"}`} />
                           ))}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-[#334155]">{container.origin.split(",")[0]}, {container.origin.split(",")[2]?.trim() ?? ""}</td>
-                      <td className="px-5 py-4 text-[#1f2e40]">{shortDate(container.portDate)}</td>
-                      <td className="px-5 py-4 font-semibold text-[#1f2e40]">{container.items.reduce((sum, item) => sum + item.qty, 0)}</td>
-                      <td className="px-5 py-4 font-semibold text-[#1f2e40]">{container.items.length}</td>
-                      <td className="px-5 py-4 text-right text-[#95a2b4]">›</td>
+                      <td className="px-3.5 py-2.5 text-[#334155]">{container.origin.split(",")[0]}, {container.origin.split(",")[2]?.trim() ?? ""}</td>
+                      <td className="px-3.5 py-2.5 text-[#1f2e40]">{shortDate(container.portDate)}</td>
+                      <td className="px-3.5 py-2.5 font-semibold text-[#1f2e40]">{container.items.reduce((sum, item) => sum + item.qty, 0)}</td>
+                      <td className="px-3.5 py-2.5 font-semibold text-[#1f2e40]">{container.items.length}</td>
+                      <td className="px-3.5 py-2.5 text-right text-[#95a2b4]">›</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-          <div className="border-t border-[#e5eaf1] px-5 py-2.5 text-center text-sm font-semibold text-[#b81d24]">View all containers →</div>
+          <div className="border-t border-[#e5eaf1] px-4 py-2 text-center text-[12px] font-semibold text-[#b81d24]">View all containers →</div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-5 py-3.5 text-sm font-bold uppercase tracking-[0.08em] text-white">Recent Activity</div>
+        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Recent Activity</div>
           <div className="divide-y divide-[#e5eaf1] px-1">
             {activity.map((item) => {
               const Icon = item.icon;
               return (
-                <article key={`${item.title}-${item.ago}`} className="flex items-start gap-3.5 px-4 py-4">
-                  <div className={`rounded-full p-2 text-white ${item.color}`}>
-                    <Icon className="h-4 w-4" />
+                <article key={`${item.title}-${item.ago}`} className="flex items-start gap-2.5 px-3.5 py-3">
+                  <div className={`rounded-full p-1.5 text-white ${item.color}`}>
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#172436]">{item.title}</p>
-                    <p className={`text-sm ${item.sub === "View backorder report" ? "font-semibold text-[#b91c1c]" : "text-[#475569]"}`}>{item.sub}</p>
+                    <p className="truncate text-[13px] font-semibold text-[#172436]">{item.title}</p>
+                    <p className={`text-[12px] ${item.sub === "View backorder report" ? "font-semibold text-[#b91c1c]" : "text-[#475569]"}`}>{item.sub}</p>
                   </div>
-                  <span className="pt-0.5 text-xs text-[#65758a]">{item.ago}</span>
+                  <span className="pt-0.5 text-[11px] text-[#65758a]">{item.ago}</span>
                 </article>
               );
             })}
           </div>
-          <div className="border-t border-[#e5eaf1] px-5 py-2.5 text-center text-sm font-semibold text-[#b81d24]">View all activity →</div>
+          <div className="border-t border-[#e5eaf1] px-4 py-2 text-center text-[12px] font-semibold text-[#b81d24]">View all activity →</div>
         </section>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <section className="overflow-hidden rounded-2xl border border-[#d8e0eb] shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-5 py-3.5 text-sm font-bold uppercase tracking-[0.08em] text-white">Priority Actions</div>
+      <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
+        <section className="overflow-hidden rounded-xl border border-[#d8e0eb] shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+          <div className="bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">Priority Actions</div>
           <div className="grid gap-px bg-[#1f2937] sm:grid-cols-2 xl:grid-cols-4">
             <PriorityCard
               tone="red"
@@ -300,34 +300,34 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="space-y-4">
-          <section className="overflow-hidden rounded-2xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-5 py-3.5 text-sm font-bold uppercase tracking-[0.08em] text-white">
+        <div className="space-y-3">
+          <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
               <span>Arriving Next 7 Days</span>
-              <span className="text-xs text-[#ef2d35]">View schedule</span>
+              <span className="text-[11px] text-[#ef2d35]">View schedule</span>
             </div>
-            <div className="divide-y divide-[#e5eaf1] px-4 py-1">
+            <div className="divide-y divide-[#e5eaf1] px-3 py-0.5">
               {inbound.slice(0, 3).map((container) => (
-                <div key={`schedule-${container.id}`} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 py-2.5 text-sm">
+                <div key={`schedule-${container.id}`} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2.5 py-2 text-[13px]">
                   <span className="text-[#334155]">{shortDate(container.portDate)}</span>
                   <span className="font-semibold text-[#172436]">PO #{container.poNumber}</span>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase ${statusTone(container.status)}`}>{container.status}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${statusTone(container.status)}`}>{container.status}</span>
                   <span className="text-[#334155]">{container.items.reduce((sum, item) => sum + item.qty, 0)} units</span>
                 </div>
               ))}
             </div>
-            <div className="border-t border-[#e5eaf1] px-5 py-2.5 text-center text-sm font-semibold text-[#b81d24]">View full schedule →</div>
+            <div className="border-t border-[#e5eaf1] px-4 py-2 text-center text-[12px] font-semibold text-[#b81d24]">View full schedule →</div>
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
-            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-5 py-3.5 text-sm font-bold uppercase tracking-[0.08em] text-white">
+          <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
+            <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white">
               <span>Integrations Status</span>
-              <span className="text-xs text-[#22c55e]">All systems operational</span>
+              <span className="text-[11px] text-[#22c55e]">All systems operational</span>
             </div>
-            <div className="flex flex-wrap gap-2 p-4">
+            <div className="flex flex-wrap gap-2 p-3">
               {["Supabase", "QuickBooks", "Vercel", "Container Tracking"].map((chip) => (
-                <span key={chip} className="inline-flex items-center gap-2 rounded-full border border-[#d9e2ec] bg-[#f8fafc] px-3 py-1.5 text-xs font-semibold text-[#233143]">
-                  <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
+                <span key={chip} className="inline-flex items-center gap-2 rounded-full border border-[#d9e2ec] bg-[#f8fafc] px-2.5 py-1 text-[11px] font-semibold text-[#233143]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
                   {chip}
                 </span>
               ))}
@@ -336,7 +336,7 @@ export default function Home() {
         </div>
       </div>
 
-      <p className="pt-1 text-center text-xs text-[#7b8798]">© 2025 Olympic Equipment LLC. All rights reserved.</p>
+      <p className="pt-0.5 text-center text-[11px] text-[#7b8798]">© 2025 Olympic Equipment LLC. All rights reserved.</p>
     </section>
   );
 }
@@ -384,16 +384,16 @@ function PriorityCard({
           : "text-[#99c3ff]";
 
   return (
-    <article className={`relative min-h-[208px] overflow-hidden bg-gradient-to-br ${toneClass} p-4 text-white`}>
+    <article className={`relative min-h-[166px] overflow-hidden bg-gradient-to-br ${toneClass} px-3 py-3 text-white`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_12%,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0)_40%)]" />
       <div className="relative">
-        <div className={`inline-flex rounded-full p-2.5 ${iconClass}`}>
-          <Icon className="h-[18px] w-[18px]" />
+        <div className={`inline-flex rounded-full p-2 ${iconClass}`}>
+          <Icon className="h-4 w-4" />
         </div>
-        <p className="mt-3 text-5xl font-bold leading-none">{value}</p>
-        <p className="mt-1 text-sm font-semibold">{title}</p>
-        <p className="mt-2 text-xs leading-5 text-white/74">{desc}</p>
-        <p className={`mt-4 text-sm font-semibold ${ctaClass}`}>{cta} →</p>
+        <p className="mt-2 text-[44px] font-bold leading-none">{value}</p>
+        <p className="mt-1 text-[13px] font-semibold">{title}</p>
+        <p className="mt-1.5 text-[11px] leading-4.5 text-white/74">{desc}</p>
+        <p className={`mt-2.5 text-[12px] font-semibold ${ctaClass}`}>{cta} →</p>
       </div>
     </article>
   );
