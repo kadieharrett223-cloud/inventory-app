@@ -13,21 +13,19 @@ export default function ProductsPage() {
         </p>
         <h2 className="mt-2 text-2xl font-bold">Product Master and Inventory</h2>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Spreadsheet product rows simplified into one clean page with mapping, dimensions, pricing, inventory, assignments, and inbound containers.
+          Spreadsheet product rows simplified into one clean page with mapping, dimensions, inventory, assignments, and inbound containers.
         </p>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-[var(--line-soft)] bg-[var(--panel)]">
-        <div className="overflow-x-auto">
-          <table className="min-w-[1300px] text-left text-sm">
+        <div>
+          <table className="w-full text-left text-sm">
             <thead className="bg-[#2a323c] text-xs uppercase tracking-[0.16em] text-white/85">
               <tr>
                 <th className="px-4 py-3">ERP Product</th>
                 <th className="px-4 py-3">QBO Mapped Product</th>
                 <th className="px-4 py-3">Category</th>
                 <th className="px-4 py-3">Dimensions</th>
-                <th className="px-4 py-3">List Price</th>
-                <th className="px-4 py-3">Sale Price</th>
                 <th className="px-4 py-3">Inventory Totals</th>
                 <th className="px-4 py-3">Customer Assignments</th>
                 <th className="px-4 py-3">Incoming Containers</th>
@@ -53,20 +51,18 @@ export default function ProductsPage() {
                     <td className="px-4 py-3">{qboMapped?.name ?? "Not mapped"}</td>
                     <td className="px-4 py-3">{product.category}</td>
                     <td className="px-4 py-3">{product.dimensions}</td>
-                    <td className="px-4 py-3">${product.listPrice.toLocaleString()}</td>
-                    <td className="px-4 py-3">${product.salePrice.toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs">
                       <p>On floor: {snapshot.onFloorQty}</p>
                       <p>Sold: {snapshot.soldAssignedQty}</p>
                       <p>On order: {snapshot.onOrderQty}</p>
                       <p>Available now: {snapshot.availableNowQty}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
+                    <td className="px-4 py-3 text-xs text-[var(--text-muted)] break-words">
                       {assignedCustomers.length
                         ? assignedCustomers.map((entry) => `${entry.customerName} (${entry.qty})`).join(", ")
                         : "None"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
+                    <td className="px-4 py-3 text-xs text-[var(--text-muted)] break-words">
                       {inboundContainers.length
                         ? inboundContainers.map((container) => `${container.containerNo} (${container.portDate})`).join(", ")
                         : "None"}
