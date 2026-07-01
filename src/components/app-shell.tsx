@@ -2,27 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType, ReactNode } from "react";
-import { AvailabilityIcon, ContainersIcon, DashboardIcon, OrdersIcon, ProductsIcon, SettingsIcon } from "@/components/line-icons";
+import type { ReactNode } from "react";
+import { BarChart3, Boxes, Cog, Gauge, LayoutDashboard, PackageCheck, ShoppingCart } from "lucide-react";
 
 type AppShellProps = {
   children: ReactNode;
 };
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-};
-
-const navItems: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: DashboardIcon },
-  { href: "/availability", label: "Availability", icon: AvailabilityIcon },
-  { href: "/orders", label: "Orders", icon: OrdersIcon },
-  { href: "/products", label: "Products", icon: ProductsIcon },
-  { href: "/containers", label: "Containers", icon: ContainersIcon },
-  { href: "/inventory", label: "Reports", icon: DashboardIcon },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
+const navItems = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/availability", label: "Availability", icon: Gauge },
+  { href: "/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/products", label: "Products", icon: Boxes },
+  { href: "/containers", label: "Containers", icon: PackageCheck },
+  { href: "/inventory", label: "Reports", icon: BarChart3 },
+  { href: "/settings", label: "Settings", icon: Cog },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -37,16 +31,15 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-[#f2f4f8] text-[#182233] lg:grid-cols-[248px_1fr]">
-      <aside className="relative overflow-hidden border-r border-[#202c3d] bg-[radial-gradient(1000px_500px_at_-20%_-10%,#16345f_0%,#0d1b2f_40%,#091423_100%)] text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_35%)]" />
-        <div className="relative flex h-full flex-col p-4">
-          <Link href="/" className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-            <p className="text-[30px] font-extrabold leading-none tracking-tight text-white">OLYMPIC</p>
-            <p className="text-[14px] font-semibold uppercase tracking-[0.24em] text-[#ef2d35]">Equipment</p>
+    <div className="grid min-h-screen grid-cols-1 bg-[#f2f4f8] text-[#182233] lg:grid-cols-[252px_1fr]">
+      <aside className="relative border-r border-[#1e2633] bg-[linear-gradient(180deg,#0d131c_0%,#0a1017_55%,#090e15_100%)] text-white">
+        <div className="relative flex h-full flex-col px-4 py-5">
+          <Link href="/" className="px-2 py-1.5">
+            <p className="text-[34px] font-black leading-none tracking-tight text-white">OLYMPIC</p>
+            <p className="mt-0.5 text-[13px] font-semibold uppercase tracking-[0.28em] text-[#ef2d35]">Equipment</p>
           </Link>
 
-          <nav className="mt-5 space-y-1.5">
+          <nav className="mt-6 space-y-1.5">
             {navItems.map((item) => {
               const active = isActive(pathname, item.href);
               const Icon = item.icon;
@@ -55,13 +48,14 @@ export function AppShell({ children }: AppShellProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+                  className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
                     active
-                      ? "bg-[linear-gradient(90deg,#b81d24_0%,#8b1e24_100%)] text-white shadow-[0_14px_24px_-18px_rgba(184,29,36,0.8)]"
-                      : "text-white/78 hover:bg-white/8 hover:text-white"
+                      ? "bg-[linear-gradient(90deg,#b51f25_0%,#8b1e24_100%)] text-white shadow-[0_14px_24px_-18px_rgba(181,31,37,0.9)]"
+                      : "text-white/78 hover:bg-white/[0.07] hover:text-white"
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
+                  {active ? <span className="absolute left-0 top-2 h-7 w-1 rounded-r-full bg-[#ff444e]" /> : null}
+                  <Icon className="h-[17px] w-[17px]" />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -69,9 +63,9 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
 
           <div className="mt-auto space-y-4">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">Connections</p>
-              <ul className="mt-3 space-y-2.5 text-sm text-white/85">
+              <ul className="mt-3 space-y-2.5 text-sm text-white/84">
                 <li className="flex items-center justify-between">
                   <span>Supabase</span>
                   <span className="h-2 w-2 rounded-full bg-[#22c55e]" />
@@ -91,7 +85,7 @@ export function AppShell({ children }: AppShellProps) {
               </ul>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+            <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-xs font-bold">KH</div>
                 <div>
@@ -99,13 +93,13 @@ export function AppShell({ children }: AppShellProps) {
                   <p className="text-xs text-white/60">Administrator</p>
                 </div>
               </div>
-              <span className="text-white/55">›</span>
+              <span className="text-white/50">›</span>
             </div>
           </div>
         </div>
       </aside>
 
-      <main className="overflow-x-hidden p-5 lg:p-6">{children}</main>
+      <main className="overflow-x-hidden px-6 pb-6 pt-8 lg:px-7">{children}</main>
     </div>
   );
 }
