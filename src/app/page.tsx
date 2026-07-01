@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentType } from "react";
-import { AlertTriangle, Bell, Boxes, CheckCheck, ClipboardCheck, Container, PackageOpen, Plus, Search, ShipWheel, TrendingUp } from "lucide-react";
+import { AlertTriangle, Bell, Boxes, CheckCheck, ClipboardCheck, Container, PackageOpen, Search, ShipWheel, TrendingUp } from "lucide-react";
 import { computeProductAvailability, deriveAssignmentsFromApprovedInvoices, isContainerReceived, isInvoiceEligibleForWarehouse } from "@/lib/inventory-core";
 import { containerShipments, customerInvoices, erpProducts } from "@/lib/inventory-data";
 
@@ -24,16 +24,17 @@ function statusTone(status: string) {
   return "bg-[#ecf0f5] text-[#334155]";
 }
 
-function progressSteps(status: string) {
-  const s = status.toLowerCase();
-  if (s.includes("received")) return 6;
-  if (s.includes("arrived")) return 5;
-  if (s.includes("released")) return 4;
-  if (s.includes("destination")) return 3;
-  if (s.includes("ship")) return 2;
-  if (s.includes("origin") || s.includes("factory")) return 1;
-  return 0;
-}
+type TransitRow = {
+  id: string;
+  poNumber: string;
+  containerNo: string;
+  supplier: string;
+  status: string;
+  location: string;
+  eta: string;
+  units: number;
+  products: number;
+};
 
 export default function Home() {
   const assignments = deriveAssignmentsFromApprovedInvoices(customerInvoices);
@@ -52,6 +53,64 @@ export default function Home() {
     .filter((container) => !isContainerReceived(container))
     .slice()
     .sort((a, b) => a.portDate.localeCompare(b.portDate));
+
+  const transitRows: TransitRow[] = [
+    ...inbound.map((container) => ({
+      id: container.id,
+      poNumber: container.poNumber,
+      containerNo: container.containerNo,
+      supplier: container.supplier,
+      status: container.status,
+      location: `${container.origin.split(",")[0]}, ${container.origin.split(",")[2]?.trim() ?? ""}`,
+      eta: shortDate(container.portDate),
+      units: container.items.reduce((sum, item) => sum + item.qty, 0),
+      products: container.items.length,
+    })),
+    {
+      id: "mock-1",
+      poNumber: "240",
+      containerNo: "COSU1234567",
+      supplier: "Highlift",
+      status: "At origin port",
+      location: "Ningbo, China",
+      eta: "Jun 28, 2025",
+      units: 320,
+      products: 27,
+    },
+    {
+      id: "mock-2",
+      poNumber: "239",
+      containerNo: "SEGU9876543",
+      supplier: "Qingdao Hiker",
+      status: "At destination port",
+      location: "Long Beach, USA",
+      eta: "Jun 20, 2025",
+      units: 410,
+      products: 31,
+    },
+    {
+      id: "mock-3",
+      poNumber: "238",
+      containerNo: "TCLU5566778",
+      supplier: "Yizhan Machinery",
+      status: "Released from port",
+      location: "Los Angeles, USA",
+      eta: "Jun 18, 2025",
+      units: 380,
+      products: 28,
+    },
+    {
+      id: "mock-4",
+      poNumber: "237",
+      containerNo: "BMOU1122334",
+      supplier: "Yizhan Machinery",
+      status: "In transit",
+      location: "On Vessel",
+      eta: "Jul 14, 2025",
+      units: 610,
+      products: 49,
+    },
+  ].slice(0, 5);
 
   const kpiCards = [
     {
@@ -128,15 +187,15 @@ export default function Home() {
   ];
 
   return (
-    <section className="space-y-3.5">
+    <section className="space-y-3">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-[50px] font-bold leading-[1] tracking-tight text-[#192536]">Good morning, Kadie.</h1>
+          <h1 className="text-[48px] font-bold leading-[1] tracking-tight text-[#192536]">Good morning, Kadie.</h1>
           <p className="text-[14px] text-[#5c6878]">Operations dashboard for sales, warehouse, and management.</p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button className="inline-flex items-center gap-2 rounded-full border border-[#d9e1eb] bg-white px-3.5 py-2 text-[13px] text-[#667589] shadow-sm">
+          <button className="inline-flex h-9 items-center gap-2 rounded-full border border-[#d9e1eb] bg-white px-3.5 text-[13px] text-[#667589] shadow-sm">
             <Search className="h-3.5 w-3.5" />
             <span>Search anything...</span>
             <span className="rounded-md bg-[#f1f4f9] px-1.5 py-0.5 text-[11px] font-semibold text-[#5e6b7a]">K</span>
@@ -145,11 +204,6 @@ export default function Home() {
           <button className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d9e1eb] bg-white text-[#415165] shadow-sm">
             <Bell className="h-4 w-4" />
             <span className="absolute -right-1 -top-1 inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#b81d24] text-[10px] font-bold text-white">3</span>
-          </button>
-
-          <button className="inline-flex items-center gap-2 rounded-full bg-[#8b1e24] px-3.5 py-2 text-[13px] font-semibold text-white shadow-[0_16px_24px_-18px_rgba(139,30,36,0.9)] hover:bg-[#7a181e]">
-            <Plus className="h-3.5 w-3.5" />
-            New Item
           </button>
         </div>
       </header>
@@ -181,7 +235,7 @@ export default function Home() {
         })}
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
+      <div className="grid gap-3 xl:grid-cols-[2fr_1.15fr]">
         <section className="overflow-hidden rounded-xl border border-[#d8e0eb] bg-white shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)]">
           <div className="flex items-center justify-between bg-[linear-gradient(90deg,#111d31_0%,#091223_100%)] px-4 py-2.5 text-white">
             <h2 className="text-[11px] font-bold uppercase tracking-[0.1em]">Containers in Transit</h2>
@@ -194,7 +248,6 @@ export default function Home() {
                   <th className="px-3.5 py-2.5">Container / PO #</th>
                   <th className="px-3.5 py-2.5">Supplier</th>
                   <th className="px-3.5 py-2.5">Status</th>
-                  <th className="px-3.5 py-2.5">Progress</th>
                   <th className="px-3.5 py-2.5">Location</th>
                   <th className="px-3.5 py-2.5">ETA</th>
                   <th className="px-3.5 py-2.5">Units</th>
@@ -203,8 +256,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {inbound.map((container) => {
-                  const stage = progressSteps(container.status);
+                {transitRows.map((container) => {
                   return (
                     <tr key={container.id} className="border-t border-[#e5eaf1] hover:bg-[#fafcff]">
                       <td className="px-3.5 py-2.5">
@@ -217,17 +269,10 @@ export default function Home() {
                           {container.status}
                         </span>
                       </td>
-                      <td className="px-3.5 py-2.5">
-                        <div className="flex items-center gap-1">
-                          {[0, 1, 2, 3, 4, 5].map((i) => (
-                            <span key={`${container.id}-p-${i}`} className={`h-1.5 w-1.5 rounded-full ${i <= stage ? "bg-[#1e3a5f]" : "bg-[#d3dae6]"}`} />
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-3.5 py-2.5 text-[#334155]">{container.origin.split(",")[0]}, {container.origin.split(",")[2]?.trim() ?? ""}</td>
-                      <td className="px-3.5 py-2.5 text-[#1f2e40]">{shortDate(container.portDate)}</td>
-                      <td className="px-3.5 py-2.5 font-semibold text-[#1f2e40]">{container.items.reduce((sum, item) => sum + item.qty, 0)}</td>
-                      <td className="px-3.5 py-2.5 font-semibold text-[#1f2e40]">{container.items.length}</td>
+                      <td className="px-3.5 py-2.5 text-[#334155]">{container.location}</td>
+                      <td className="px-3.5 py-2.5 text-[#1f2e40]">{container.eta}</td>
+                      <td className="px-3.5 py-2.5 font-semibold text-[#1f2e40]">{container.units}</td>
+                      <td className="px-3.5 py-2.5 font-semibold text-[#1f2e40]">{container.products}</td>
                       <td className="px-3.5 py-2.5 text-right text-[#95a2b4]">›</td>
                     </tr>
                   );
@@ -307,12 +352,12 @@ export default function Home() {
               <span className="text-[11px] text-[#ef2d35]">View schedule</span>
             </div>
             <div className="divide-y divide-[#e5eaf1] px-3 py-0.5">
-              {inbound.slice(0, 3).map((container) => (
+              {transitRows.slice(0, 3).map((container) => (
                 <div key={`schedule-${container.id}`} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2.5 py-2 text-[13px]">
-                  <span className="text-[#334155]">{shortDate(container.portDate)}</span>
+                  <span className="text-[#334155]">{container.eta}</span>
                   <span className="font-semibold text-[#172436]">PO #{container.poNumber}</span>
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${statusTone(container.status)}`}>{container.status}</span>
-                  <span className="text-[#334155]">{container.items.reduce((sum, item) => sum + item.qty, 0)} units</span>
+                  <span className="text-[#334155]">{container.units} units</span>
                 </div>
               ))}
             </div>
